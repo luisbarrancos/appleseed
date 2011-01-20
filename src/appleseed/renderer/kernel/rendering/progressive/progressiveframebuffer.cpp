@@ -87,26 +87,21 @@ void ProgressiveFrameBuffer::store_samples(
 {
     Spinlock::ScopedLock lock(m_spinlock);
 
-    const double fb_width = static_cast<double>(m_fb.get_width());
-    const double fb_height = static_cast<double>(m_fb.get_height());
+    store_samples_no_lock(sample_count, samples);
+}
 
-    const Sample* RESTRICT sample_ptr = samples;
-    const Sample* RESTRICT sample_end = samples + sample_count;
+bool ProgressiveFrameBuffer::try_store_samples(
+    const size_t    sample_count,
+    const Sample    samples[])
+{
+    if (!m_spinlock.try_lock())
+        return false;
 
-    while (sample_ptr < sample_end)
-    {
-        const double fx = (0.5 + sample_ptr->m_position.x) * fb_width;
-        const double fy = (0.5 - sample_ptr->m_position.y) * fb_height;
+    store_samples_no_lock(sample_count, samples);
 
-        const size_t x = truncate<size_t>(fx);
-        const size_t y = truncate<size_t>(fy);
+    m_spinlock.unlock();
 
-        m_fb.add_pixel(x, y, sample_ptr->m_color);
-
-        ++sample_ptr;
-    }
-
-    m_sample_count += sample_count;
+    return true;
 }
 
 void ProgressiveFrameBuffer::render_to_frame(Frame& frame)
@@ -149,6 +144,32 @@ void ProgressiveFrameBuffer::deallocate_mipmaps()
         delete m_mipmaps[i];
 
     m_mipmaps.clear();
+}
+
+void ProgressiveFrameBuffer::store_samples_no_lock(
+    const size_t                    sample_count,
+    const Sample                    samples[])
+{
+    const double fb_width = static_cast<double>(m_fb.get_width());
+    const double fb_height = static_cast<double>(m_fb.get_height());
+
+    const Sample* RESTRICT sample_ptr = samples;
+    const Sample* RESTRICT sample_end = samples + sample_count;
+
+    while (sample_ptr < sample_end)
+    {
+        const double fx = (0.5 + sample_ptr->m_position.x) * fb_width;
+        const double fy = (0.5 - sample_ptr->m_position.y) * fb_height;
+
+        const size_t x = truncate<size_t>(fx);
+        const size_t y = truncate<size_t>(fy);
+
+        m_fb.add_pixel(x, y, sample_ptr->m_color);
+
+        ++sample_ptr;
+    }
+
+    m_sample_count += sample_count;
 }
 
 namespace

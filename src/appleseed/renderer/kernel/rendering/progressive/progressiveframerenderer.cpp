@@ -149,6 +149,7 @@ namespace
                     new SampleGenerator(
                         m_frame,
                         m_sample_renderers[i],
+                        m_sample_counter,
                         i,
                         m_params.m_thread_count));
             }

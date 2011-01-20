@@ -32,6 +32,7 @@
 // appleseed.renderer headers.
 #include "renderer/kernel/rendering/progressive/progressiveframebuffer.h"
 #include "renderer/kernel/rendering/progressive/sample.h"
+#include "renderer/kernel/rendering/progressive/samplecounter.h"
 #include "renderer/kernel/rendering/isamplerenderer.h"
 #include "renderer/kernel/shading/shadingresult.h"
 #include "renderer/modeling/frame/frame.h"
@@ -50,23 +51,58 @@ namespace renderer
 // SampleGenerator class implementation.
 //
 
+#undef ENABLE_SAMPLE_GENERATION_DURING_CONTENTION
+
 namespace
 {
     const size_t SampleBatchSize = 67;
+    const size_t AdditionalSampleCount = 4096;
+    const size_t AdditionalSampleBatchSize = 64;
 }
 
 SampleGenerator::SampleGenerator(
     Frame&                      frame,
     ISampleRenderer*            sample_renderer,
+    SampleCounter&              sample_counter,
     const size_t                generator_index,
-    const size_t                generator_count)
+    const size_t                generator_count,
+    const bool                  enable_logging)
   : m_frame(frame)
   , m_sample_renderer(sample_renderer)
+  , m_sample_counter(sample_counter)
   , m_lighting_conditions(frame.get_lighting_conditions())
+  , m_enable_logging(enable_logging)
   , m_stride((generator_count - 1) * SampleBatchSize)
   , m_sequence_index(generator_index * SampleBatchSize)
   , m_current_batch_size(0)
+  , m_sample_count(0)
+  , m_pfb_lock_acquired_immediately(0)
+  , m_pfb_lock_acquired_after_additional_work(0)
+  , m_pfb_lock_acquired_after_blocking(0)
+  , m_additional_sample_count(0)
 {
+}
+
+SampleGenerator::~SampleGenerator()
+{
+    if (m_enable_logging)
+    {
+        const size_t total_acquisition_count = 
+            m_pfb_lock_acquired_immediately +
+            m_pfb_lock_acquired_after_additional_work +
+            m_pfb_lock_acquired_after_blocking;
+
+        RENDERER_LOG_DEBUG(
+            "progressive framebuffer lock acquisition statistics:\n"
+            "  acquired immediately            : %s\n"
+            "  acquired after additional work  : %s\n"
+            "  acquired after blocking         : %s\n"
+            "  samples generated while waiting : %s\n",
+            pretty_percent(m_pfb_lock_acquired_immediately, total_acquisition_count).c_str(),
+            pretty_percent(m_pfb_lock_acquired_after_additional_work, total_acquisition_count).c_str(),
+            pretty_percent(m_pfb_lock_acquired_after_blocking, total_acquisition_count).c_str(),
+            pretty_uint(m_additional_sample_count).c_str());
+    }
 }
 
 void SampleGenerator::generate_samples(
@@ -76,10 +112,10 @@ void SampleGenerator::generate_samples(
     assert(sample_count > 0);
 
     ensure_size(m_samples, sample_count);
+    m_sample_count = 0;
 
     generate_sample_vector(0, sample_count);
-
-    framebuffer.store_samples(sample_count, &m_samples[0]);
+    store_samples(framebuffer);
 }
 
 void SampleGenerator::generate_sample_vector(const size_t index, const size_t count)
@@ -99,6 +135,8 @@ void SampleGenerator::generate_sample_vector(const size_t index, const size_t co
             m_sequence_index += m_stride;
         }
     }
+
+    m_sample_count += count;
 }
 
 void SampleGenerator::generate_sample(Sample& sample)
@@ -133,6 +171,47 @@ void SampleGenerator::generate_sample(Sample& sample)
     sample.m_color[1] = shading_result.m_color[1];
     sample.m_color[2] = shading_result.m_color[2];
     sample.m_color[3] = shading_result.m_alpha[0];
+}
+
+void SampleGenerator::store_samples(ProgressiveFrameBuffer& framebuffer)
+{
+#ifdef ENABLE_SAMPLE_GENERATION_DURING_CONTENTION
+
+    // Optimistically attempt to store the samples into the framebuffer.
+    if (framebuffer.try_store_samples(m_sample_count, &m_samples[0]))
+    {
+        ++m_pfb_lock_acquired_immediately;
+        return;
+    }
+
+    // That didn't work out. Make space for additional samples.
+    const size_t max_sample_count = m_sample_count + AdditionalSampleCount;
+    ensure_size(m_samples, max_sample_count);
+
+    // Generate some more samples while the framebuffer is being used by another thread.
+    while (m_sample_count < max_sample_count)
+    {
+        // Generate a bunch of additional samples.
+        const size_t additional_sample_count =
+            m_sample_counter.reserve(AdditionalSampleBatchSize);
+        if (additional_sample_count == 0)
+            break;
+        generate_sample_vector(m_sample_count, additional_sample_count);
+        m_additional_sample_count += additional_sample_count;
+
+        // Attempt to store them into the framebuffer.
+        if (framebuffer.try_store_samples(m_sample_count, &m_samples[0]))
+        {
+            ++m_pfb_lock_acquired_after_additional_work;
+            return;
+        }
+    }
+
+#endif
+
+    // Give up: block until the framebuffer lock can be acquired.
+    framebuffer.store_samples(m_sample_count, &m_samples[0]);
+    ++m_pfb_lock_acquired_after_blocking;
 }
 
 }   // namespace renderer

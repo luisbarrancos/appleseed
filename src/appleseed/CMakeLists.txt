@@ -929,6 +929,7 @@ source_group("renderer\\kernel\\volume" FILES
 )
 
 set(renderer_meta_benchmarks_sources
+    renderer/meta/benchmarks/benchmark_samplegenerator.cpp
 )
 list(APPEND appleseed_sources
     ${renderer_meta_benchmarks_sources}

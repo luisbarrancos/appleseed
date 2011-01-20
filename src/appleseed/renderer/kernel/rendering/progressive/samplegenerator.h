@@ -42,6 +42,7 @@ namespace foundation    { class MersenneTwister; }
 namespace renderer      { class Frame; }
 namespace renderer      { class ISampleRenderer; }
 namespace renderer      { class ProgressiveFrameBuffer; }
+namespace renderer      { class SampleCounter; }
 
 namespace renderer
 {
@@ -54,8 +55,13 @@ class SampleGenerator
     SampleGenerator(
         Frame&                              frame,
         ISampleRenderer*                    sample_renderer,
+        SampleCounter&                      sample_counter,
         const size_t                        generator_index,
-        const size_t                        generator_count);
+        const size_t                        generator_count,
+        const bool                          enable_logging = true);
+
+    // Destructor.
+    ~SampleGenerator();
 
     // Generate @sample_count samples and store them in @framebuffer.
     void generate_samples(
@@ -65,16 +71,27 @@ class SampleGenerator
   private:
     Frame&                                  m_frame;
     ISampleRenderer*                        m_sample_renderer;
+    SampleCounter&                          m_sample_counter;
     const foundation::LightingConditions&   m_lighting_conditions;
+    const bool                              m_enable_logging;
     const size_t                            m_stride;
     size_t                                  m_sequence_index;
     size_t                                  m_current_batch_size;
+    size_t                                  m_sample_count;
     std::vector<Sample>                     m_samples;
     foundation::MersenneTwister             m_rng;
+
+    size_t                                  m_pfb_lock_acquired_immediately;
+    size_t                                  m_pfb_lock_acquired_after_additional_work;
+    size_t                                  m_pfb_lock_acquired_after_blocking;
+    foundation::uint64                      m_additional_sample_count;
 
     void generate_sample_vector(const size_t index, const size_t count);
 
     void generate_sample(Sample& sample);
+
+    // Store the samples in @m_samples into @framebuffer.
+    void store_samples(ProgressiveFrameBuffer& framebuffer);
 };
 
 }       // namespace renderer

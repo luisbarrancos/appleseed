@@ -68,6 +68,14 @@ class ProgressiveFrameBuffer
         const size_t    sample_count,
         const Sample    samples[]);
 
+    // Try to store @samples into the framebuffer. This method will fail if the framebuffer lock
+    // cannot be immediately acquired, in which case it will return false. If the framebuffer lock
+    // can be immediately acquired, the samples will be stored into the framebuffer and the method
+    // will return true. Thread-safe.
+    bool try_store_samples(
+        const size_t    sample_count,
+        const Sample    samples[]);
+
     // Thread-safe.
     void render_to_frame(Frame& frame);
 
@@ -92,6 +100,10 @@ class ProgressiveFrameBuffer
 
     void allocate_mipmaps();
     void deallocate_mipmaps();
+
+    void store_samples_no_lock(
+        const size_t                    sample_count,
+        const Sample                    samples[]);
 
     void do_render_to_frame(Frame& frame);
     void render_to_frame_resample(Frame& frame) const;
