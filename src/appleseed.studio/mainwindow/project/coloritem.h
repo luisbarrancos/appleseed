@@ -26,59 +26,45 @@
 // THE SOFTWARE.
 //
 
-// Interface header.
-#include "colorcollectionitem.h"
+#ifndef APPLESEED_STUDIO_MAINWINDOW_PROJECT_COLORITEM_H
+#define APPLESEED_STUDIO_MAINWINDOW_PROJECT_COLORITEM_H
 
 // appleseed.studio headers.
-#include "mainwindow/project/coloritem.h"
+#include "mainwindow/project/entityitem.h"
 
-// appleseed.foundation headers.
-#include "foundation/utility/uid.h"
+// appleseed.renderer headers.
+#include "renderer/api/scene.h"
 
-using namespace foundation;
-using namespace renderer;
+// Forward declarations.
+namespace appleseed     { namespace studio { class ProjectBuilder; } }
+namespace renderer      { class ColorEntity; }
 
 namespace appleseed {
 namespace studio {
 
-namespace
+class SceneColorItem
+  : public EntityItem<renderer::ColorEntity, renderer::Scene>
 {
-    const UniqueID g_class_uid = new_guid();
-}
+  public:
+    SceneColorItem(
+        renderer::ColorEntity*      color,
+        renderer::Scene&            scene,
+        ProjectBuilder&             project_builder);
+};
 
-SceneColorCollectionItem::SceneColorCollectionItem(
-    Scene&              scene,
-    ColorContainer&     colors,
-    ProjectBuilder&     project_builder)
-  : CollectionItem(scene, project_builder)
-  , ItemBase(g_class_uid, "Colors")
-  , m_scene(scene)
-  , m_project_builder(project_builder)
+class AssemblyColorItem
+  : public EntityItem<renderer::ColorEntity, renderer::Assembly>
 {
-    add_items(m_scene.colors());
-}
+  public:
+    AssemblyColorItem(
+        renderer::ColorEntity*      color,
+        renderer::Assembly&         assembly,
+        ProjectBuilder&             project_builder);
 
-void SceneColorCollectionItem::add_item(ColorEntity* color)
-{
-    addChild(new SceneColorItem(color, m_scene, m_project_builder));
-}
+    virtual void slot_edit();
+};
 
-AssemblyColorCollectionItem::AssemblyColorCollectionItem(
-    Assembly&           assembly,
-    ColorContainer&     colors,
-    ProjectBuilder&     project_builder)
-  : CollectionItem(assembly, project_builder)
-  , ItemBase(g_class_uid, "Colors")
-  , m_assembly(assembly)
-  , m_project_builder(project_builder)
-{
-    add_items(m_assembly.colors());
-}
+}       // namespace studio
+}       // namespace appleseed
 
-void AssemblyColorCollectionItem::add_item(ColorEntity* color)
-{
-    addChild(new AssemblyColorItem(color, m_assembly, m_project_builder));
-}
-
-}   // namespace studio
-}   // namespace appleseed
+#endif  // !APPLESEED_STUDIO_MAINWINDOW_PROJECT_COLORITEM_H

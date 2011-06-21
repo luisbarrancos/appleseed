@@ -30,7 +30,7 @@
 #define APPLESEED_STUDIO_MAINWINDOW_PROJECT_COLORCOLLECTIONITEM_H
 
 // appleseed.studio headers.
-#include "mainwindow/project/collectionitembase.h"
+#include "mainwindow/project/collectionitem.h"
 
 // appleseed.renderer headers.
 #include "renderer/api/color.h"
@@ -45,25 +45,40 @@ namespace appleseed { namespace studio { class ProjectBuilder; } }
 namespace appleseed {
 namespace studio {
 
-class ColorCollectionItem
-  : public CollectionItemBase<renderer::ColorEntity>
+class SceneColorCollectionItem
+  : public CollectionItem<renderer::ColorEntity, renderer::Scene>
 {
     Q_OBJECT
 
   public:
-    ColorCollectionItem(
+    SceneColorCollectionItem(
         renderer::Scene&            scene,
         renderer::ColorContainer&   colors,
         ProjectBuilder&             project_builder);
 
-    ColorCollectionItem(
+    virtual void add_item(renderer::ColorEntity* color);
+
+  private:
+    renderer::Scene&        m_scene;
+    ProjectBuilder&         m_project_builder;
+};
+
+class AssemblyColorCollectionItem
+  : public CollectionItem<renderer::ColorEntity, renderer::Assembly>
+{
+    Q_OBJECT
+
+  public:
+    AssemblyColorCollectionItem(
         renderer::Assembly&         assembly,
         renderer::ColorContainer&   colors,
         ProjectBuilder&             project_builder);
 
+    virtual void add_item(renderer::ColorEntity* color);
+
   private:
-    renderer::Assembly* m_assembly;
-    ProjectBuilder&     m_project_builder;
+    renderer::Assembly&     m_assembly;
+    ProjectBuilder&         m_project_builder;
 };
 
 }       // namespace studio

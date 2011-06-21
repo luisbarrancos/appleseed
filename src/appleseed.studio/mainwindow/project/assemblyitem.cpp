@@ -82,7 +82,7 @@ struct AssemblyItem::Impl
     ProjectBuilder&                             m_project_builder;
     Assembly&                                   m_assembly;
 
-    ColorCollectionItem*                        m_color_collection_item;
+    AssemblyColorCollectionItem*                m_color_collection_item;
     TextureCollectionItem*                      m_texture_collection_item;
     TextureInstanceCollectionItem*              m_texture_instance_collection_item;
     CollectionItem<BSDF, Assembly>*             m_bsdf_collection_item;
@@ -103,7 +103,7 @@ struct AssemblyItem::Impl
       , m_assembly(assembly)
       , m_project_builder(project_builder)
     {
-        m_color_collection_item = add_collection_item(assembly.colors());
+        m_color_collection_item = add_color_collection_item(assembly.colors());
         m_texture_collection_item = add_collection_item(assembly.textures());
         m_texture_instance_collection_item = add_collection_item(assembly.texture_instances());
         m_bsdf_collection_item = add_multi_model_collection_item<BSDF>(assembly.bsdfs());
@@ -159,6 +159,19 @@ struct AssemblyItem::Impl
                 m_project_builder);
 
         item->add_items(entities);
+
+        m_assembly_item->addChild(item);
+
+        return item;
+    }
+
+    AssemblyColorCollectionItem* add_color_collection_item(ColorContainer& colors)
+    {
+        AssemblyColorCollectionItem* item =
+            new AssemblyColorCollectionItem(
+                m_assembly,
+                colors,
+                m_project_builder);
 
         m_assembly_item->addChild(item);
 

@@ -72,49 +72,13 @@ struct ProjectTree::Impl
 
     CameraItem*                                 m_camera_item;
     EnvironmentItem*                            m_environment_item;
-    ColorCollectionItem*                        m_color_collection_item;
+    SceneColorCollectionItem*                   m_color_collection_item;
     TextureCollectionItem*                      m_texture_collection_item;
     TextureInstanceCollectionItem*              m_texture_instance_collection_item;
     CollectionItem<EnvironmentEDF, Scene>*      m_environment_edf_collection_item;
     CollectionItem<EnvironmentShader, Scene>*   m_environment_shader_collection_item;
     AssemblyCollectionItem*                     m_assembly_collection_item;
     AssemblyInstanceCollectionItem*             m_assembly_instance_collection_item;
-
-    CameraItem* add_camera_item(
-        Scene&              scene,
-        Camera*             camera,
-        ProjectBuilder&     project_builder)
-    {
-        CameraItem* item =
-            new CameraItem(
-                camera,
-                scene,
-                project_builder);
-
-        item->set_allow_deletion(false);
-
-        m_tree_widget->addTopLevelItem(item);
-
-        return item;
-    }
-
-    EnvironmentItem* add_environment_item(
-        Scene&              scene,
-        Environment*        environment,
-        ProjectBuilder&     project_builder)
-    {
-        EnvironmentItem* item =
-            new EnvironmentItem(
-                environment,
-                scene,
-                project_builder);
-
-        item->set_allow_deletion(false);
-
-        m_tree_widget->addTopLevelItem(item);
-
-        return item;
-    }
 
     template <typename EntityContainer>
     typename ItemTypeMap<EntityContainer>::T* add_collection_item(
@@ -154,6 +118,58 @@ struct ProjectTree::Impl
 
         return item;
     }
+
+    CameraItem* add_camera_item(
+        Scene&              scene,
+        Camera*             camera,
+        ProjectBuilder&     project_builder)
+    {
+        CameraItem* item =
+            new CameraItem(
+                camera,
+                scene,
+                project_builder);
+
+        item->set_allow_deletion(false);
+
+        m_tree_widget->addTopLevelItem(item);
+
+        return item;
+    }
+
+    EnvironmentItem* add_environment_item(
+        Scene&              scene,
+        Environment*        environment,
+        ProjectBuilder&     project_builder)
+    {
+        EnvironmentItem* item =
+            new EnvironmentItem(
+                environment,
+                scene,
+                project_builder);
+
+        item->set_allow_deletion(false);
+
+        m_tree_widget->addTopLevelItem(item);
+
+        return item;
+    }
+
+    SceneColorCollectionItem* add_color_collection_item(
+        Scene&              scene,
+        ColorContainer&     colors,
+        ProjectBuilder&     project_builder)
+    {
+        SceneColorCollectionItem* item =
+            new SceneColorCollectionItem(
+                scene,
+                colors,
+                project_builder);
+
+        m_tree_widget->addTopLevelItem(item);
+
+        return item;
+    }
 };
 
 ProjectTree::ProjectTree(QTreeWidget* tree_widget)
@@ -184,7 +200,7 @@ void ProjectTree::initialize(Project& project, ProjectBuilder& project_builder)
             project_builder);
 
     impl->m_color_collection_item =
-        impl->add_collection_item(
+        impl->add_color_collection_item(
             scene,
             scene.colors(),
             project_builder);
