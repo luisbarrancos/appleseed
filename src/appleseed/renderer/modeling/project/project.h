@@ -46,6 +46,8 @@ namespace renderer
 //
 // A rendering project.
 //
+// None of the method of the renderer::Project class is guranteed to be thread-safe.
+//
 
 class RENDERERDLL Project
   : public Entity
@@ -54,7 +56,7 @@ class RENDERERDLL Project
     // Delete this instance.
     virtual void release();
 
-    // Set or get the project path.
+    // Set/get the project path.
     bool has_path() const;
     void set_path(const char* path);
     const char* get_path() const;

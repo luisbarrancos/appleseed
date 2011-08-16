@@ -116,7 +116,7 @@
     <output>
         <frame name="beauty">
             <parameter name="camera" value="camera" />
-            <parameter name="color_space" value="srgb" />
+            <parameter name="color_space" value="linear_rgb" />
             <parameter name="resolution" value="512 512" />
         </frame>
     </output>
@@ -127,6 +127,10 @@
                 <parameter name="min_samples" value="1" />
             </parameters>
         </configuration>
-        <configuration name="interactive" base="base_interactive" />
+        <configuration name="interactive" base="base_interactive">
+            <parameters name="progressive_frame_renderer">
+                <parameter name="reference_image" value="/Users/francois/Projects/appleseed/sandbox/images/autosave/autosave.20110810.150022.000.exr" />
+            </parameters>
+        </configuration>
     </configurations>
 </project>

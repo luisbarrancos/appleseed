@@ -40,9 +40,14 @@
 
 // appleseed.foundation headers.
 #include "foundation/image/canvasproperties.h"
+#include "foundation/image/genericimagefilereader.h"
+#include "foundation/image/image.h"
 #include "foundation/platform/thread.h"
+#include "foundation/platform/timer.h"
 #include "foundation/utility/foreach.h"
 #include "foundation/utility/job.h"
+#include "foundation/utility/maplefile.h"
+#include "foundation/utility/string.h"
 
 // Standard headers.
 #include <vector>
@@ -76,6 +81,7 @@ namespace
           : m_frame(frame)
           , m_params(params)
           , m_sample_counter(m_params.m_max_sample_count)
+          , m_ref_image(0)
         {
             // We must have a generator factory, but it's OK not to have a callback factory.
             assert(generator_factory);
@@ -101,11 +107,18 @@ namespace
                     generator_factory->create(i, m_params.m_thread_count));
             }
 
+            // Instantiate tile callbacks, one per rendering thread.
             if (callback_factory)
             {
-                // Instantiate tile callbacks, one per rendering thread.
                 for (size_t i = 0; i < m_params.m_thread_count; ++i)
                     m_tile_callbacks.push_back(callback_factory->create());
+            }
+
+            // Load the reference image if one is specified.
+            if (!m_params.m_ref_image_path.empty())
+            {
+                GenericImageFileReader reader;
+                m_ref_image = reader.read(m_params.m_ref_image_path.c_str());
             }
 
             print_rendering_thread_count(m_params.m_thread_count);
@@ -171,6 +184,7 @@ namespace
                 new StatisticsFunc(
                     m_frame,
                     *m_framebuffer.get(),
+                    m_ref_image,
                     m_abort_switch));
             m_statistics_thread.reset(new thread(*m_statistics_func.get()));
         }
@@ -199,11 +213,13 @@ namespace
         {
             const size_t    m_thread_count;         // number of rendering threads
             const uint64    m_max_sample_count;     // maximum total number of samples to store in the framebuffer
+            const string    m_ref_image_path;       // path to the reference image
 
             // Constructor, extract parameters.
             explicit Parameters(const ParamArray& params)
               : m_thread_count(FrameRendererBase::get_rendering_thread_count(params))
               , m_max_sample_count(params.get_optional<uint64>("max_samples", numeric_limits<uint64>::max()))
+              , m_ref_image_path(params.get_optional<string>("reference_image", ""))
             {
             }
         };
@@ -221,28 +237,107 @@ namespace
         SampleGeneratorVector               m_sample_generators;
         TileCallbackVector                  m_tile_callbacks;
 
-        struct StatisticsFunc
-        {
-            Frame&                          m_frame;
-            AccumulationFramebuffer&        m_framebuffer;
-            AbortSwitch&                    m_abort_switch;
+        const Image*                        m_ref_image;
 
+        class StatisticsFunc
+        {
+          public:
             StatisticsFunc(
                 Frame&                      frame,
                 AccumulationFramebuffer&    framebuffer,
+                const Image*                ref_image,
                 AbortSwitch&                abort_switch)
               : m_frame(frame)
               , m_framebuffer(framebuffer)
+              , m_ref_image(ref_image)
               , m_abort_switch(abort_switch)
+              , m_timer_frequency(m_timer.frequency())
+              , m_last_time(m_timer.read())
+              , m_last_sample_count(0)
             {
+            }
+
+            StatisticsFunc(const StatisticsFunc& rhs)
+              : m_frame(rhs.m_frame)
+              , m_framebuffer(rhs.m_framebuffer)
+              , m_ref_image(rhs.m_ref_image)
+              , m_abort_switch(rhs.m_abort_switch)
+              , m_timer_frequency(rhs.m_timer_frequency)
+              , m_last_time(rhs.m_last_time)
+              , m_last_sample_count(rhs.m_last_sample_count)
+            {
+            }
+
+            ~StatisticsFunc()
+            {
+                if (!m_samples_history.empty())
+                {
+                    RENDERER_LOG_DEBUG("xxx %d", m_samples_history.size());
+                    MapleFile file("rmsd.txt");
+                    file.define(
+                        "rmsd",
+                        m_samples_history.size(),
+                        &m_samples_history[0],
+                        &m_rmsd_history[0]);
+                    file.plot("rmsd", "blue", "RMS Deviation");
+                }
             }
 
             void operator()()
             {
                 while (!m_abort_switch.is_aborted())
                 {
-                    m_framebuffer.print_statistics(m_frame);
-                    foundation::sleep(200); // needs full qualification
+                    print_fb_statistics();
+                    record_rms_deviation();
+                    foundation::sleep(1000);    // needs full qualification
+                }
+            }
+
+          private:
+            Frame&                          m_frame;
+            AccumulationFramebuffer&        m_framebuffer;
+            const Image*                    m_ref_image;
+            AbortSwitch&                    m_abort_switch;
+
+            DefaultWallclockTimer           m_timer;
+            uint64                          m_timer_frequency;
+            uint64                          m_last_time;
+            uint64                          m_last_sample_count;
+
+            vector<double>                  m_samples_history;
+            vector<double>                  m_rmsd_history;
+
+            void print_fb_statistics()
+            {
+                const uint64 time = m_timer.read();
+                const uint64 elapsed_ticks = time - m_last_time;
+                const double elapsed_seconds = static_cast<double>(elapsed_ticks) / m_timer_frequency;
+
+                if (elapsed_seconds >= 0.0)
+                {
+                    const uint64 sample_count = m_framebuffer.get_sample_count();
+                    const uint64 rendered_samples = sample_count - m_last_sample_count;
+                    const uint64 pixel_count = static_cast<uint64>(m_frame.properties().m_pixel_count);
+                    const double average_luminance = m_frame.compute_average_luminance();
+
+                    RENDERER_LOG_INFO(
+                        "%s samples, %s samples/pixel, %s samples/second, avg. luminance %s",
+                        pretty_uint(sample_count).c_str(),
+                        pretty_ratio(sample_count, pixel_count).c_str(),
+                        pretty_ratio(static_cast<double>(rendered_samples), elapsed_seconds).c_str(),
+                        pretty_scalar(average_luminance, 6).c_str());
+
+                    m_last_sample_count = sample_count;
+                    m_last_time = time;
+                }
+            }
+
+            void record_rms_deviation()
+            {
+                if (m_ref_image)
+                {
+                    m_samples_history.push_back(static_cast<double>(m_framebuffer.get_sample_count()));
+                    m_rmsd_history.push_back(m_frame.compute_rms_deviation(*m_ref_image));
                 }
             }
         };

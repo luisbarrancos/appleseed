@@ -6,4 +6,11 @@
     <parameters name="progressive_frame_renderer">
         <parameter name="rendering_threads" value="auto" />
     </parameters>
+    <parameters name="ui">
+        <parameters name="mainwindow">
+            <parameters name="openfiledialog">
+                <parameter name="lastdirectory" value="/Users/francois/Projects/appleseed/sandbox/scenes/winosi" />
+            </parameters>
+        </parameters>
+    </parameters>
 </settings>

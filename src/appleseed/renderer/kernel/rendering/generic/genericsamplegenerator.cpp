@@ -31,6 +31,7 @@
 
 // appleseed.renderer headers.
 #include "renderer/global/globaltypes.h"
+#include "renderer/kernel/lighting/imageimportancesampler.h"
 #include "renderer/kernel/rendering/isamplerenderer.h"
 #include "renderer/kernel/rendering/localaccumulationframebuffer.h"
 #include "renderer/kernel/rendering/sample.h"
@@ -44,10 +45,16 @@
 #include "foundation/math/vector.h"
 #include "foundation/utility/autoreleaseptr.h"
 
+// Standard headers.
+#include <vector>
+
 // Forward declarations.
 namespace foundation    { class LightingConditions; }
 
 using namespace foundation;
+using namespace std;
+
+#define ADAPTIVE_IMAGE_SAMPLING
 
 namespace renderer
 {
@@ -57,6 +64,88 @@ namespace
     //
     // GenericSampleGenerator class implementation.
     //
+
+    class PixelSampler
+    {
+      public:
+        PixelSampler(
+            const size_t    width,
+            const size_t    height)
+          : m_width(width)
+          , m_height(height)
+          , m_pixel_history(width * height)
+        {
+            const size_t pixel_count = m_pixel_history.size();
+            for (size_t i = 0; i < pixel_count; ++i)
+            {
+                PixelHistory& history = m_pixel_history[i];
+                history.m_avg = 0.0;
+                history.m_s = 0.0;
+                history.m_size = 0;
+            }
+        }
+
+        double operator()(
+            const size_t    x,
+            const size_t    y) const
+        {
+            assert(x < m_width);
+            assert(y < m_height);
+
+            const PixelHistory& history = m_pixel_history[y * m_width + x];
+
+            if (history.m_size < 2)
+                return 1.0;
+
+            if (history.m_s == 0.0)
+                return 1.0e-6;
+
+            return history.m_s / history.m_size;
+        }
+
+        void update_pixel_variance(
+            const size_t    x,
+            const size_t    y,
+            const float     luminance)
+        {
+            assert(x < m_width);
+            assert(y < m_height);
+
+            PixelHistory& history = m_pixel_history[y * m_width + x];
+
+            const double double_luminance = static_cast<double>(luminance);
+
+            // Compute residual value.
+            const double residual = double_luminance - history.m_avg;
+
+            // Compute the new size of the population.
+            const size_t new_size = history.m_size + 1;
+
+            // Compute the new mean value of the population.
+            const double new_avg = history.m_avg + residual / new_size;
+
+            // Update s.
+            history.m_s += residual * (double_luminance - new_avg);
+
+            // Update the mean value of the population.
+            history.m_avg = new_avg;
+
+            // Update the size of the population.
+            history.m_size = new_size;
+        }
+
+      private:
+        struct PixelHistory
+        {
+            double  m_avg;
+            double  m_s;
+            size_t  m_size;
+        };
+
+        const size_t            m_width;
+        const size_t            m_height;
+        vector<PixelHistory>    m_pixel_history;
+    };
 
     class GenericSampleGenerator
       : public SampleGeneratorBase
@@ -71,6 +160,9 @@ namespace
           , m_frame(frame)
           , m_sample_renderer(sample_renderer_factory->create())
           , m_lighting_conditions(frame.get_lighting_conditions())
+          , m_pixel_sampler(frame.properties().m_canvas_width, frame.properties().m_canvas_height)
+          , m_image_sampler(frame.properties().m_canvas_width, frame.properties().m_canvas_height, m_pixel_sampler)
+          , m_sample_count(0)
         {
         }
 
@@ -91,10 +183,41 @@ namespace
         const LightingConditions&           m_lighting_conditions;
         MersenneTwister                     m_rng;
 
+        PixelSampler                        m_pixel_sampler;
+        ImageImportanceSampler<double>      m_image_sampler;
+        size_t                              m_sample_count;
+
         virtual size_t generate_samples(
             const size_t                    sequence_index,
             SampleVector&                   samples)
         {
+#ifdef ADAPTIVE_IMAGE_SAMPLING
+
+            // Generate a uniform sample in [0,1)^2.
+            const size_t Bases[2] = { 2, 3 };
+            const Vector2d s = halton_sequence<double, 2>(Bases, sequence_index);
+
+            // Choose a pixel.
+            size_t pixel_x, pixel_y;
+            double pixel_prob;
+            m_image_sampler.sample(s, pixel_x, pixel_y, pixel_prob);
+
+            // Create a sampling context.
+            SamplingContext sampling_context(
+                m_rng,
+                2,                          // number of dimensions
+                0,                          // number of samples
+                sequence_index);            // initial instance number
+
+            // Compute the sample position in NDC.
+            const CanvasProperties& props = m_frame.properties();
+            const Vector2d subpixel = sampling_context.next_vector2<2>();
+            const Vector2d sample_position(
+                (pixel_x + subpixel.x) * props.m_rcp_canvas_width,
+                (pixel_y + subpixel.y) * props.m_rcp_canvas_height);
+
+#else
+
             // Compute the sample position in NDC.
             const size_t Bases[2] = { 2, 3 };
             const Vector2d sample_position =
@@ -103,9 +226,11 @@ namespace
             // Create a sampling context.
             SamplingContext sampling_context(
                 m_rng,
-                2,                          // number of dimensions
+                2,                          // number of dimensions -- todo: why not 0?
                 0,                          // number of samples
                 sequence_index);            // initial instance number
+
+#endif
 
             // Render the sample.
             ShadingResult shading_result;
@@ -125,6 +250,36 @@ namespace
             sample.m_color[2] = shading_result.m_color[2];
             sample.m_color[3] = shading_result.m_alpha[0];
             samples.push_back(sample);
+
+#ifdef ADAPTIVE_IMAGE_SAMPLING
+
+            // Update pixel variance.
+            m_pixel_sampler.update_pixel_variance(
+                pixel_x,
+                pixel_y,
+                luminance(sample.m_color.rgb()));
+
+            // Update the pixel CDF once in a while.
+            const size_t ImageSamplerUpdatePeriod = 100000;
+            if (++m_sample_count == ImageSamplerUpdatePeriod)
+            {
+                RENDERER_LOG_DEBUG("updating image sampler...");
+                m_image_sampler.rebuild(m_pixel_sampler);
+                m_sample_count = 0;
+#if 0
+                FILE* f = fopen("pixelcdf.txt", "wt");
+                for (size_t y = 0; y < m_frame.properties().m_canvas_height; ++y)
+                {
+                    for (size_t x = 0; x < m_frame.properties().m_canvas_width; ++x)
+                    {
+                        fprintf(f, "%f  ", m_pixel_sampler(x, y));
+                    }
+                }
+                fclose(f);
+#endif
+            }
+
+#endif
 
             return 1;
         }

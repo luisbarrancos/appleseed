@@ -51,12 +51,14 @@ namespace renderer
 
 struct Project::Impl
 {
-    string                  m_path;
-    auto_release_ptr<Scene> m_scene;
-    auto_release_ptr<Frame> m_frame;
-    ConfigurationContainer  m_configurations;
-    SearchPaths             m_search_paths;
-    auto_ptr<TraceContext>  m_trace_context;
+    string                      m_path;
+    auto_release_ptr<Scene>     m_scene;
+    auto_release_ptr<Frame>     m_frame;
+    ConfigurationContainer      m_configurations;
+    SearchPaths                 m_search_paths;
+    auto_ptr<TraceContext>      m_trace_context;
+    string                      m_ref_image_path;
+    Image*                      m_ref_image;
 };
 
 namespace
