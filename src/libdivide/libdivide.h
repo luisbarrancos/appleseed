@@ -2,6 +2,9 @@
    Copyright 2010 ridiculous_fish
 */
 
+#ifndef LIBDIVIDE_H
+#define LIBDIVIDE_H
+
 #if defined(_WIN32) || defined(WIN32)
 #define LIBDIVIDE_WINDOWS 1
 #endif
@@ -14,25 +17,12 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <cstdint>
 #else
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#endif
-
-#if ! LIBDIVIDE_HAS_STDINT_TYPES && ! LIBDIVIDE_VC
-/* Visual C++ still doesn't ship with stdint.h (!) */
 #include <stdint.h>
-#define LIBDIVIDE_HAS_STDINT_TYPES 1
-#endif
-
-#if ! LIBDIVIDE_HAS_STDINT_TYPES
-typedef __int32 int32_t;
-typedef unsigned __int32 uint32_t;
-typedef __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-typedef __int8 int8_t;
-typedef unsigned __int8 uint8_t;
 #endif
 
 #if LIBDIVIDE_USE_SSE2
@@ -72,7 +62,6 @@ typedef unsigned __int8 uint8_t;
 
 #ifdef __cplusplus
 /* We place libdivide within the libdivide namespace, and that goes in an anonymous namespace so that the functions are only visible to files that #include this header and don't get external linkage.  At least that's the theory. */
-namespace {
 namespace libdivide {
 #endif
 
@@ -213,7 +202,7 @@ static inline uint32_t libdivide__mullhi_u32(uint32_t x, uint32_t y) {
     return (uint32_t)(rl >> 32);
 }
  
-static uint64_t libdivide__mullhi_u64(uint64_t x, uint64_t y) {
+static inline uint64_t libdivide__mullhi_u64(uint64_t x, uint64_t y) {
 #if HAS_INT128_T
     __uint128_t xl = x, yl = y;
     __uint128_t rl = xl * yl;
@@ -434,7 +423,7 @@ static inline int32_t libdivide__count_leading_zeros64(uint64_t val) {
 
 //libdivide_64_div_32_to_32: divides a 64 bit uint {u1, u0} by a 32 bit uint {v}.  The result must fit in 32 bits.  Returns the quotient directly and the remainder in *r
 #if (LIBDIVIDE_IS_i386 || LIBDIVIDE_IS_X86_64) && LIBDIVIDE_GCC_STYLE_ASM
-static uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, uint32_t *r) {
+static inline uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, uint32_t *r) {
     uint32_t result;
     __asm__("divl %[v]"
             : "=a"(result), "=d"(*r)
@@ -443,7 +432,7 @@ static uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, 
     return result;
 }
 #else
-static uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, uint32_t *r) {
+static inline uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, uint32_t *r) {
     uint64_t n = (((uint64_t)u1) << 32) | u0;
     uint32_t result = (uint32_t)(n / v);
     *r = (uint32_t)(n - result * (uint64_t)v);
@@ -452,7 +441,7 @@ static uint32_t libdivide_64_div_32_to_32(uint32_t u1, uint32_t u0, uint32_t v, 
 #endif
     
 #if LIBDIVIDE_IS_X86_64 && LIBDIVIDE_GCC_STYLE_ASM
-static uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v, uint64_t *r) {
+static inline uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v, uint64_t *r) {
     //u0 -> rax
     //u1 -> rdx
     //divq
@@ -468,7 +457,7 @@ static uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v,
  
 /* Code taken from Hacker's Delight, http://www.hackersdelight.org/HDcode/divlu.c .  License permits inclusion here per http://www.hackersdelight.org/permissions.htm
  */
-static uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v, uint64_t *r) {    
+static inline uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v, uint64_t *r) {    
     const uint64_t b = (1ULL << 32); // Number base (16 bits).
     uint64_t un1, un0,        // Norm. dividend LSD's.
     vn1, vn0,        // Norm. divisor digits.
@@ -529,7 +518,7 @@ again2:
   
 ////////// UINT32
 
-struct libdivide_u32_t libdivide_u32_gen(uint32_t d) {
+inline struct libdivide_u32_t libdivide_u32_gen(uint32_t d) {
     struct libdivide_u32_t result;
     if ((d & (d - 1)) == 0) {
         result.magic = 0;
@@ -565,7 +554,7 @@ struct libdivide_u32_t libdivide_u32_gen(uint32_t d) {
     return result;
 }
 
-uint32_t libdivide_u32_do(uint32_t numer, const struct libdivide_u32_t *denom) {
+inline uint32_t libdivide_u32_do(uint32_t numer, const struct libdivide_u32_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U32_SHIFT_PATH) {
         return numer >> (more & LIBDIVIDE_32_SHIFT_MASK);
@@ -583,23 +572,23 @@ uint32_t libdivide_u32_do(uint32_t numer, const struct libdivide_u32_t *denom) {
 }
 
  
-int libdivide_u32_get_algorithm(const struct libdivide_u32_t *denom) {
+inline int libdivide_u32_get_algorithm(const struct libdivide_u32_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U32_SHIFT_PATH) return 0;
     else if (! (more & LIBDIVIDE_ADD_MARKER)) return 1;
     else return 2;
 }
  
-uint32_t libdivide_u32_do_alg0(uint32_t numer, const struct libdivide_u32_t *denom) {
+inline uint32_t libdivide_u32_do_alg0(uint32_t numer, const struct libdivide_u32_t *denom) {
     return numer >> (denom->more & LIBDIVIDE_32_SHIFT_MASK);
 }
  
-uint32_t libdivide_u32_do_alg1(uint32_t numer, const struct libdivide_u32_t *denom) {
+inline uint32_t libdivide_u32_do_alg1(uint32_t numer, const struct libdivide_u32_t *denom) {
     uint32_t q = libdivide__mullhi_u32(denom->magic, numer);
     return q >> denom->more;
 }    
  
-uint32_t libdivide_u32_do_alg2(uint32_t numer, const struct libdivide_u32_t *denom) {
+inline uint32_t libdivide_u32_do_alg2(uint32_t numer, const struct libdivide_u32_t *denom) {
     // denom->add != 0
     uint32_t q = libdivide__mullhi_u32(denom->magic, numer);
     uint32_t t = ((numer - q) >> 1) + q;
@@ -610,7 +599,7 @@ uint32_t libdivide_u32_do_alg2(uint32_t numer, const struct libdivide_u32_t *den
 
     
 #if LIBDIVIDE_USE_SSE2    
-__m128i libdivide_u32_do_vector(__m128i numers, const struct libdivide_u32_t *denom) {
+inline __m128i libdivide_u32_do_vector(__m128i numers, const struct libdivide_u32_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U32_SHIFT_PATH) {
         return _mm_srl_epi32(numers, libdivide_u32_to_m128i(more & LIBDIVIDE_32_SHIFT_MASK));
@@ -631,16 +620,16 @@ __m128i libdivide_u32_do_vector(__m128i numers, const struct libdivide_u32_t *de
     }
 }
 
-__m128i libdivide_u32_do_vector_alg0(__m128i numers, const struct libdivide_u32_t *denom) {
+inline __m128i libdivide_u32_do_vector_alg0(__m128i numers, const struct libdivide_u32_t *denom) {
     return _mm_srl_epi32(numers, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_32_SHIFT_MASK));
 }
 
-__m128i libdivide_u32_do_vector_alg1(__m128i numers, const struct libdivide_u32_t *denom) {
+inline __m128i libdivide_u32_do_vector_alg1(__m128i numers, const struct libdivide_u32_t *denom) {
     __m128i q = libdivide__mullhi_u32_flat_vector(numers, _mm_set1_epi32(denom->magic));
     return _mm_srl_epi32(q, libdivide_u32_to_m128i(denom->more));
 }
 
-__m128i libdivide_u32_do_vector_alg2(__m128i numers, const struct libdivide_u32_t *denom) {
+inline __m128i libdivide_u32_do_vector_alg2(__m128i numers, const struct libdivide_u32_t *denom) {
     __m128i q = libdivide__mullhi_u32_flat_vector(numers, _mm_set1_epi32(denom->magic));
     __m128i t = _mm_add_epi32(_mm_srli_epi32(_mm_sub_epi32(numers, q), 1), q);
     return _mm_srl_epi32(t, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_32_SHIFT_MASK));
@@ -650,7 +639,7 @@ __m128i libdivide_u32_do_vector_alg2(__m128i numers, const struct libdivide_u32_
  
 /////////// UINT64
 
-struct libdivide_u64_t libdivide_u64_gen(uint64_t d) {
+inline struct libdivide_u64_t libdivide_u64_gen(uint64_t d) {
     struct libdivide_u64_t result;
     if ((d & (d - 1)) == 0) {
         result.more = libdivide__count_trailing_zeros64(d) | LIBDIVIDE_U64_SHIFT_PATH;
@@ -685,7 +674,7 @@ struct libdivide_u64_t libdivide_u64_gen(uint64_t d) {
     return result;
 }
 
-uint64_t libdivide_u64_do(uint64_t numer, const struct libdivide_u64_t *denom) {
+inline uint64_t libdivide_u64_do(uint64_t numer, const struct libdivide_u64_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U64_SHIFT_PATH) {
         return numer >> (more & LIBDIVIDE_64_SHIFT_MASK);
@@ -703,30 +692,30 @@ uint64_t libdivide_u64_do(uint64_t numer, const struct libdivide_u64_t *denom) {
 }
 
  
-int libdivide_u64_get_algorithm(const struct libdivide_u64_t *denom) {
+inline int libdivide_u64_get_algorithm(const struct libdivide_u64_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U64_SHIFT_PATH) return 0;
     else if (! (more & LIBDIVIDE_ADD_MARKER)) return 1;
     else return 2;
 }
  
-uint64_t libdivide_u64_do_alg0(uint64_t numer, const struct libdivide_u64_t *denom) {
+inline uint64_t libdivide_u64_do_alg0(uint64_t numer, const struct libdivide_u64_t *denom) {
     return numer >> (denom->more & LIBDIVIDE_64_SHIFT_MASK);    
 }
  
-uint64_t libdivide_u64_do_alg1(uint64_t numer, const struct libdivide_u64_t *denom) {
+inline uint64_t libdivide_u64_do_alg1(uint64_t numer, const struct libdivide_u64_t *denom) {
     uint64_t q = libdivide__mullhi_u64(denom->magic, numer);
     return q >> denom->more;
 }
  
-uint64_t libdivide_u64_do_alg2(uint64_t numer, const struct libdivide_u64_t *denom) {
+inline uint64_t libdivide_u64_do_alg2(uint64_t numer, const struct libdivide_u64_t *denom) {
     uint64_t q = libdivide__mullhi_u64(denom->magic, numer);
     uint64_t t = ((numer - q) >> 1) + q;
     return t >> (denom->more & LIBDIVIDE_64_SHIFT_MASK);
 }
  
 #if LIBDIVIDE_USE_SSE2    
-__m128i libdivide_u64_do_vector(__m128i numers, const struct libdivide_u64_t * denom) {
+inline __m128i libdivide_u64_do_vector(__m128i numers, const struct libdivide_u64_t * denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_U64_SHIFT_PATH) {
         return _mm_srl_epi64(numers, libdivide_u32_to_m128i(more & LIBDIVIDE_64_SHIFT_MASK));
@@ -746,16 +735,16 @@ __m128i libdivide_u64_do_vector(__m128i numers, const struct libdivide_u64_t * d
     }
 }
 
-__m128i libdivide_u64_do_vector_alg0(__m128i numers, const struct libdivide_u64_t *denom) {
+inline __m128i libdivide_u64_do_vector_alg0(__m128i numers, const struct libdivide_u64_t *denom) {
     return _mm_srl_epi64(numers, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_64_SHIFT_MASK));
 }
 
-__m128i libdivide_u64_do_vector_alg1(__m128i numers, const struct libdivide_u64_t *denom) {
+inline __m128i libdivide_u64_do_vector_alg1(__m128i numers, const struct libdivide_u64_t *denom) {
     __m128i q = libdivide_mullhi_u64_flat_vector(numers, libdivide__u64_to_m128(denom->magic));
     return _mm_srl_epi64(q, libdivide_u32_to_m128i(denom->more));
 }
 
-__m128i libdivide_u64_do_vector_alg2(__m128i numers, const struct libdivide_u64_t *denom) {
+inline __m128i libdivide_u64_do_vector_alg2(__m128i numers, const struct libdivide_u64_t *denom) {
     __m128i q = libdivide_mullhi_u64_flat_vector(numers, libdivide__u64_to_m128(denom->magic));
     __m128i t = _mm_add_epi64(_mm_srli_epi64(_mm_sub_epi64(numers, q), 1), q);
     return _mm_srl_epi64(t, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_64_SHIFT_MASK));
@@ -773,7 +762,7 @@ static inline int32_t libdivide__mullhi_s32(int32_t x, int32_t y) {
     return (int32_t)(rl >> 32); //needs to be arithmetic shift
 }
 
-struct libdivide_s32_t libdivide_s32_gen(int32_t d) {
+inline struct libdivide_s32_t libdivide_s32_gen(int32_t d) {
     struct libdivide_s32_t result;
     
     /* If d is a power of 2, or negative a power of 2, we have to use a shift.  This is especially important because the magic algorithm fails for -1.  To check if d is a power of 2 or its inverse, it suffices to check whether its absolute value has exactly one bit set.  This works even for INT_MIN, because abs(INT_MIN) == INT_MIN, and INT_MIN has one bit set and is a power of 2.  */
@@ -812,7 +801,7 @@ struct libdivide_s32_t libdivide_s32_gen(int32_t d) {
     return result;
 }
 
-int32_t libdivide_s32_do(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do(int32_t numer, const struct libdivide_s32_t *denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_S32_SHIFT_PATH) {
         uint8_t shifter = more & LIBDIVIDE_32_SHIFT_MASK;
@@ -834,7 +823,7 @@ int32_t libdivide_s32_do(int32_t numer, const struct libdivide_s32_t *denom) {
     }
 }    
  
-int libdivide_s32_get_algorithm(const struct libdivide_s32_t *denom) {
+inline int libdivide_s32_get_algorithm(const struct libdivide_s32_t *denom) {
     uint8_t more = denom->more;
     int positiveDivisor = ! (more & LIBDIVIDE_NEGATIVE_DIVISOR);
     if (more & LIBDIVIDE_S32_SHIFT_PATH) return (positiveDivisor ? 0 : 1);
@@ -842,19 +831,19 @@ int libdivide_s32_get_algorithm(const struct libdivide_s32_t *denom) {
     else return 4;
 }
  
-int32_t libdivide_s32_do_alg0(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do_alg0(int32_t numer, const struct libdivide_s32_t *denom) {
     uint8_t shifter = denom->more & LIBDIVIDE_32_SHIFT_MASK;
     int32_t q = numer + ((numer >> 31) & ((1 << shifter) - 1));
     return q >> shifter;
 }
  
-int32_t libdivide_s32_do_alg1(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do_alg1(int32_t numer, const struct libdivide_s32_t *denom) {
     uint8_t shifter = denom->more & LIBDIVIDE_32_SHIFT_MASK;
     int32_t q = numer + ((numer >> 31) & ((1 << shifter) - 1));
     return - (q >> shifter);
 }
  
-int32_t libdivide_s32_do_alg2(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do_alg2(int32_t numer, const struct libdivide_s32_t *denom) {
     int32_t q = libdivide__mullhi_s32(denom->magic, numer);
     q += numer;
     q >>= denom->more & LIBDIVIDE_32_SHIFT_MASK;
@@ -862,7 +851,7 @@ int32_t libdivide_s32_do_alg2(int32_t numer, const struct libdivide_s32_t *denom
     return q;
 }
  
-int32_t libdivide_s32_do_alg3(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do_alg3(int32_t numer, const struct libdivide_s32_t *denom) {
     int32_t q = libdivide__mullhi_s32(denom->magic, numer);
     q -= numer;
     q >>= denom->more & LIBDIVIDE_32_SHIFT_MASK;
@@ -870,7 +859,7 @@ int32_t libdivide_s32_do_alg3(int32_t numer, const struct libdivide_s32_t *denom
     return q;
 }
  
-int32_t libdivide_s32_do_alg4(int32_t numer, const struct libdivide_s32_t *denom) {
+inline int32_t libdivide_s32_do_alg4(int32_t numer, const struct libdivide_s32_t *denom) {
     int32_t q = libdivide__mullhi_s32(denom->magic, numer);
     q >>= denom->more & LIBDIVIDE_32_SHIFT_MASK;
     q += (q < 0);    
@@ -878,7 +867,7 @@ int32_t libdivide_s32_do_alg4(int32_t numer, const struct libdivide_s32_t *denom
 }
 
 #if LIBDIVIDE_USE_SSE2    
-__m128i libdivide_s32_do_vector(__m128i numers, const struct libdivide_s32_t * denom) {
+inline __m128i libdivide_s32_do_vector(__m128i numers, const struct libdivide_s32_t * denom) {
     uint8_t more = denom->more;
     if (more & LIBDIVIDE_S32_SHIFT_PATH) {
         uint32_t shifter = more & LIBDIVIDE_32_SHIFT_MASK;
@@ -901,21 +890,21 @@ __m128i libdivide_s32_do_vector(__m128i numers, const struct libdivide_s32_t * d
     }
 }
 
-__m128i libdivide_s32_do_vector_alg0(__m128i numers, const struct libdivide_s32_t *denom) {
+inline __m128i libdivide_s32_do_vector_alg0(__m128i numers, const struct libdivide_s32_t *denom) {
     uint8_t shifter = denom->more & LIBDIVIDE_32_SHIFT_MASK;
     __m128i roundToZeroTweak = _mm_set1_epi32((1 << shifter) - 1);
     __m128i q = _mm_add_epi32(numers, _mm_and_si128(_mm_srai_epi32(numers, 31), roundToZeroTweak));
     return _mm_sra_epi32(q, libdivide_u32_to_m128i(shifter));
 }
 
-__m128i libdivide_s32_do_vector_alg1(__m128i numers, const struct libdivide_s32_t *denom) {
+inline __m128i libdivide_s32_do_vector_alg1(__m128i numers, const struct libdivide_s32_t *denom) {
     uint8_t shifter = denom->more & LIBDIVIDE_32_SHIFT_MASK;
     __m128i roundToZeroTweak = _mm_set1_epi32((1 << shifter) - 1);
     __m128i q = _mm_add_epi32(numers, _mm_and_si128(_mm_srai_epi32(numers, 31), roundToZeroTweak));
     return _mm_sub_epi32(_mm_setzero_si128(), _mm_sra_epi32(q, libdivide_u32_to_m128i(shifter)));
 }
 
-__m128i libdivide_s32_do_vector_alg2(__m128i numers, const struct libdivide_s32_t *denom) {
+inline __m128i libdivide_s32_do_vector_alg2(__m128i numers, const struct libdivide_s32_t *denom) {
     __m128i q = libdivide_mullhi_s32_flat_vector(numers, _mm_set1_epi32(denom->magic));
     q = _mm_add_epi32(q, numers);
     q = _mm_sra_epi32(q, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_32_SHIFT_MASK));
@@ -923,7 +912,7 @@ __m128i libdivide_s32_do_vector_alg2(__m128i numers, const struct libdivide_s32_
     return q;
 }
 
-__m128i libdivide_s32_do_vector_alg3(__m128i numers, const struct libdivide_s32_t *denom) {
+inline __m128i libdivide_s32_do_vector_alg3(__m128i numers, const struct libdivide_s32_t *denom) {
     __m128i q = libdivide_mullhi_s32_flat_vector(numers, _mm_set1_epi32(denom->magic));
     q = _mm_sub_epi32(q, numers);
     q = _mm_sra_epi32(q, libdivide_u32_to_m128i(denom->more & LIBDIVIDE_32_SHIFT_MASK));
@@ -931,7 +920,7 @@ __m128i libdivide_s32_do_vector_alg3(__m128i numers, const struct libdivide_s32_
     return q;
 }
 
-__m128i libdivide_s32_do_vector_alg4(__m128i numers, const struct libdivide_s32_t *denom) {
+inline __m128i libdivide_s32_do_vector_alg4(__m128i numers, const struct libdivide_s32_t *denom) {
     __m128i q = libdivide_mullhi_s32_flat_vector(numers, _mm_set1_epi32(denom->magic));
     q = _mm_sra_epi32(q, libdivide_u32_to_m128i(denom->more)); //q >>= shift
     q = _mm_add_epi32(q, _mm_srli_epi32(q, 31)); // q += (q < 0)
@@ -942,7 +931,7 @@ __m128i libdivide_s32_do_vector_alg4(__m128i numers, const struct libdivide_s32_
 ///////////// SINT64
  
 
-struct libdivide_s64_t libdivide_s64_gen(int64_t d) {
+inline struct libdivide_s64_t libdivide_s64_gen(int64_t d) {
     struct libdivide_s64_t result;
     
     /* If d is a power of 2, or negative a power of 2, we have to use a shift.  This is especially important because the magic algorithm fails for -1.  To check if d is a power of 2 or its inverse, it suffices to check whether its absolute value has exactly one bit set.  This works even for INT_MIN, because abs(INT_MIN) == INT_MIN, and INT_MIN has one bit set and is a power of 2.  */
@@ -979,7 +968,7 @@ struct libdivide_s64_t libdivide_s64_gen(int64_t d) {
     return result;
 }
 
-int64_t libdivide_s64_do(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do(int64_t numer, const struct libdivide_s64_t *denom) {
     uint8_t more = denom->more;
     int64_t magic = denom->magic;
     if (magic == 0) { //shift path
@@ -1003,7 +992,7 @@ int64_t libdivide_s64_do(int64_t numer, const struct libdivide_s64_t *denom) {
 }    
     
  
-int libdivide_s64_get_algorithm(const struct libdivide_s64_t *denom) {
+inline int libdivide_s64_get_algorithm(const struct libdivide_s64_t *denom) {
     uint8_t more = denom->more;
     int positiveDivisor = ! (more & LIBDIVIDE_NEGATIVE_DIVISOR);
     if (denom->magic == 0) return (positiveDivisor ? 0 : 1); //shift path
@@ -1011,20 +1000,20 @@ int libdivide_s64_get_algorithm(const struct libdivide_s64_t *denom) {
     else return 4;
 }
  
-int64_t libdivide_s64_do_alg0(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do_alg0(int64_t numer, const struct libdivide_s64_t *denom) {
     uint32_t shifter = denom->more & LIBDIVIDE_64_SHIFT_MASK;
     int64_t q = numer + ((numer >> 63) & ((1LL << shifter) - 1));
     return q >> shifter;    
 }
  
-int64_t libdivide_s64_do_alg1(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do_alg1(int64_t numer, const struct libdivide_s64_t *denom) {
     //denom->shifter != -1 && demo->shiftMask != 0
     uint32_t shifter = denom->more & LIBDIVIDE_64_SHIFT_MASK;
     int64_t q = numer + ((numer >> 63) & ((1LL << shifter) - 1));
     return - (q >> shifter);
 }
  
-int64_t libdivide_s64_do_alg2(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do_alg2(int64_t numer, const struct libdivide_s64_t *denom) {
     int64_t q = libdivide__mullhi_s64(denom->magic, numer);
     q += numer;
     q >>= denom->more & LIBDIVIDE_64_SHIFT_MASK;
@@ -1032,7 +1021,7 @@ int64_t libdivide_s64_do_alg2(int64_t numer, const struct libdivide_s64_t *denom
     return q;
 }
     
-int64_t libdivide_s64_do_alg3(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do_alg3(int64_t numer, const struct libdivide_s64_t *denom) {
     int64_t q = libdivide__mullhi_s64(denom->magic, numer);
     q -= numer;
     q >>= denom->more & LIBDIVIDE_64_SHIFT_MASK;
@@ -1040,7 +1029,7 @@ int64_t libdivide_s64_do_alg3(int64_t numer, const struct libdivide_s64_t *denom
     return q;
 }
     
-int64_t libdivide_s64_do_alg4(int64_t numer, const struct libdivide_s64_t *denom) {
+inline int64_t libdivide_s64_do_alg4(int64_t numer, const struct libdivide_s64_t *denom) {
     int64_t q = libdivide__mullhi_s64(denom->magic, numer);
     q >>= denom->more;
     q += (q < 0);
@@ -1049,7 +1038,7 @@ int64_t libdivide_s64_do_alg4(int64_t numer, const struct libdivide_s64_t *denom
 
 
 #if LIBDIVIDE_USE_SSE2
-__m128i libdivide_s64_do_vector(__m128i numers, const struct libdivide_s64_t * denom) {
+inline __m128i libdivide_s64_do_vector(__m128i numers, const struct libdivide_s64_t * denom) {
     uint8_t more = denom->more;
     int64_t magic = denom->magic;
     if (magic == 0) { //shift path
@@ -1073,7 +1062,7 @@ __m128i libdivide_s64_do_vector(__m128i numers, const struct libdivide_s64_t * d
     }
 }
 
-__m128i libdivide_s64_do_vector_alg0(__m128i numers, const struct libdivide_s64_t *denom) {
+inline __m128i libdivide_s64_do_vector_alg0(__m128i numers, const struct libdivide_s64_t *denom) {
     uint32_t shifter = denom->more & LIBDIVIDE_64_SHIFT_MASK;
     __m128i roundToZeroTweak = libdivide__u64_to_m128((1LL << shifter) - 1);
     __m128i q = _mm_add_epi64(numers, _mm_and_si128(libdivide_s64_signbits(numers), roundToZeroTweak));
@@ -1081,7 +1070,7 @@ __m128i libdivide_s64_do_vector_alg0(__m128i numers, const struct libdivide_s64_
     return q;
 }
 
-__m128i libdivide_s64_do_vector_alg1(__m128i numers, const struct libdivide_s64_t *denom) {
+inline __m128i libdivide_s64_do_vector_alg1(__m128i numers, const struct libdivide_s64_t *denom) {
     uint32_t shifter = denom->more & LIBDIVIDE_64_SHIFT_MASK;
     __m128i roundToZeroTweak = libdivide__u64_to_m128((1LL << shifter) - 1);
     __m128i q = _mm_add_epi64(numers, _mm_and_si128(libdivide_s64_signbits(numers), roundToZeroTweak));
@@ -1089,7 +1078,7 @@ __m128i libdivide_s64_do_vector_alg1(__m128i numers, const struct libdivide_s64_
     return _mm_sub_epi64(_mm_setzero_si128(), q);
 }
 
-__m128i libdivide_s64_do_vector_alg2(__m128i numers, const struct libdivide_s64_t *denom) {
+inline __m128i libdivide_s64_do_vector_alg2(__m128i numers, const struct libdivide_s64_t *denom) {
     __m128i q = libdivide_mullhi_s64_flat_vector(numers, libdivide__u64_to_m128(denom->magic));
     q = _mm_add_epi64(q, numers);
     q = libdivide_s64_shift_right_vector(q, denom->more & LIBDIVIDE_64_SHIFT_MASK);
@@ -1097,7 +1086,7 @@ __m128i libdivide_s64_do_vector_alg2(__m128i numers, const struct libdivide_s64_
     return q;
 }
 
-__m128i libdivide_s64_do_vector_alg3(__m128i numers, const struct libdivide_s64_t *denom) {
+inline __m128i libdivide_s64_do_vector_alg3(__m128i numers, const struct libdivide_s64_t *denom) {
     __m128i q = libdivide_mullhi_s64_flat_vector(numers, libdivide__u64_to_m128(denom->magic));
     q = _mm_sub_epi64(q, numers);
     q = libdivide_s64_shift_right_vector(q, denom->more & LIBDIVIDE_64_SHIFT_MASK);
@@ -1105,7 +1094,7 @@ __m128i libdivide_s64_do_vector_alg3(__m128i numers, const struct libdivide_s64_
     return q;    
 }
 
-__m128i libdivide_s64_do_vector_alg4(__m128i numers, const struct libdivide_s64_t *denom) {
+inline __m128i libdivide_s64_do_vector_alg4(__m128i numers, const struct libdivide_s64_t *denom) {
     __m128i q = libdivide_mullhi_s64_flat_vector(numers, libdivide__u64_to_m128(denom->magic));
     q = libdivide_s64_shift_right_vector(q, denom->more);
     q = _mm_add_epi64(q, _mm_srli_epi64(q, 63));
@@ -1141,11 +1130,11 @@ namespace libdivide_internal {
 #endif
 
     /* Some bogus unswitch functions for unsigned types so the same (presumably templated) code can work for both signed and unsigned. */
-    uint32_t crash_u32(uint32_t, const libdivide_u32_t *) { abort(); return *(uint32_t *)NULL; }
-    uint64_t crash_u64(uint64_t, const libdivide_u64_t *) { abort(); return *(uint64_t *)NULL; }
+    inline uint32_t crash_u32(uint32_t, const libdivide_u32_t *) { abort(); return *(uint32_t *)NULL; }
+    inline uint64_t crash_u64(uint64_t, const libdivide_u64_t *) { abort(); return *(uint64_t *)NULL; }
 #if LIBDIVIDE_USE_SSE2
-    __m128i crash_u32_vector(__m128i, const libdivide_u32_t *) { abort(); return *(__m128i *)NULL; }
-    __m128i crash_u64_vector(__m128i, const libdivide_u64_t *) { abort(); return *(__m128i *)NULL; }
+    inline __m128i crash_u32_vector(__m128i, const libdivide_u32_t *) { abort(); return *(__m128i *)NULL; }
+    inline __m128i crash_u64_vector(__m128i, const libdivide_u64_t *) { abort(); return *(__m128i *)NULL; }
 #endif
 
     template<typename IntType, typename DenomType, DenomType gen_func(IntType), int get_algo(const DenomType *), IntType do_func(IntType, const DenomType *), MAYBE_VECTOR_PARAM>
@@ -1276,18 +1265,18 @@ class divider
 
 /* Returns a divider specialized for the given algorithm. */
 template<int NEW_ALGO, typename S>
-divider<S, NEW_ALGO> unswitch(const divider<S, -1> & d) { return divider<S, NEW_ALGO>(d.sub.denom); }
+inline divider<S, NEW_ALGO> unswitch(const divider<S, -1> & d) { return divider<S, NEW_ALGO>(d.sub.denom); }
 
 /* Overload of the / operator for scalar division. */
 template<typename int_type, int ALGO>
-int_type operator/(int_type numer, const divider<int_type, ALGO> & denom) {
+inline int_type operator/(int_type numer, const divider<int_type, ALGO> & denom) {
     return denom.perform_divide(numer);
 }
 
 #if  LIBDIVIDE_USE_SSE2
 /* Overload of the / operator for vector division. */
 template<typename int_type, int ALGO>
-__m128i operator/(__m128i numer, const divider<int_type, ALGO> & denom) {
+inline __m128i operator/(__m128i numer, const divider<int_type, ALGO> & denom) {
     return denom.perform_divide_vector(numer);
 }
 #endif
@@ -1298,5 +1287,6 @@ __m128i operator/(__m128i numer, const divider<int_type, ALGO> & denom) {
 #endif //LIBDIVIDE_HEADER_ONLY
 #ifdef __cplusplus
 } //close namespace libdivide
-} //close anonymous namespace
 #endif
+
+#endif  // !LIBDIVIDE_H
