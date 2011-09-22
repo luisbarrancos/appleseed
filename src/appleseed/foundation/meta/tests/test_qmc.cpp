@@ -41,6 +41,9 @@
 #include "foundation/utility/test.h"
 #include "foundation/utility/testutils.h"
 
+// libdivide header.
+#include "../libdivide/libdivide.h"
+
 // Standard headers.
 #include <cmath>
 #include <cstddef>
@@ -48,11 +51,12 @@
 #include <vector>
 
 using namespace foundation;
+using namespace libdivide;
 using namespace std;
 
 TEST_SUITE(Foundation_Math_QMC)
 {
-    TEST_CASE(TestFastRadicalInverseBase2)
+    TEST_CASE(RadicalInverseBase2)
     {
         EXPECT_FEQ(0.0,     radical_inverse_base2<double>(0));
         EXPECT_FEQ(0.5,     radical_inverse_base2<double>(1));
@@ -64,7 +68,7 @@ TEST_SUITE(Foundation_Math_QMC)
         EXPECT_FEQ(0.875,   radical_inverse_base2<double>(7));
     }
 
-    TEST_CASE(TestRadicalInverseInBase2)
+    TEST_CASE(RadicalInverse_Base2)
     {
         EXPECT_FEQ(0.0,     radical_inverse<double>(2, 0));
         EXPECT_FEQ(0.5,     radical_inverse<double>(2, 1));
@@ -76,7 +80,7 @@ TEST_SUITE(Foundation_Math_QMC)
         EXPECT_FEQ(0.875,   radical_inverse<double>(2, 7));
     }
 
-    TEST_CASE(TestRadicalInverseInBase3)
+    TEST_CASE(RadicalInverse_Base3)
     {
         EXPECT_FEQ(0.0,     radical_inverse<double>(3, 0));
         EXPECT_FEQ(1.0 / 3, radical_inverse<double>(3, 1));
@@ -88,7 +92,22 @@ TEST_SUITE(Foundation_Math_QMC)
         EXPECT_FEQ(5.0 / 9, radical_inverse<double>(3, 7));
     }
 
-    TEST_CASE(TestFastPermutedRadicalInverseBase3IdentityPermutation)
+    TEST_CASE(QuickRadicalInverse_Base3)
+    {
+        const double RcpDivider = 1.0 / 3;
+        const divider<size_t> BaseDivider(3);
+
+        EXPECT_FEQ(0.0,     quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 0));
+        EXPECT_FEQ(1.0 / 3, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 1));
+        EXPECT_FEQ(2.0 / 3, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 2));
+        EXPECT_FEQ(1.0 / 9, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 3));
+        EXPECT_FEQ(4.0 / 9, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 4));
+        EXPECT_FEQ(7.0 / 9, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 5));
+        EXPECT_FEQ(2.0 / 9, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 6));
+        EXPECT_FEQ(5.0 / 9, quick_radical_inverse<double>(3, RcpDivider, BaseDivider, 7));
+    }
+
+    TEST_CASE(PermutedRadicalInverse_Base3_IdentityPermutation)
     {
         static const size_t Perm[] = { 0, 1, 2 };
         EXPECT_FEQ(0.0,     permuted_radical_inverse<double>(3, Perm, 0));
@@ -101,7 +120,7 @@ TEST_SUITE(Foundation_Math_QMC)
         EXPECT_FEQ(5.0 / 9, permuted_radical_inverse<double>(3, Perm, 7));
     }
 
-    TEST_CASE(TestFastPermutedRadicalInverseBase3ReversePermutation)
+    TEST_CASE(PermutedRadicalInverse_Base3_ReversePermutation)
     {
         static const size_t Perm[] = { 0, 2, 1 };
         EXPECT_FEQ(0.0,     permuted_radical_inverse<double>(3, Perm, 0));
@@ -267,6 +286,19 @@ TEST_SUITE(Foundation_Math_QMC)
         generate_hammersley_zaremba_sequence_image(5);
         generate_hammersley_zaremba_sequence_image(7);
         generate_hammersley_zaremba_sequence_image(11);
+    }
+
+    // 2D scrambled Hammersley sequence.
+    template <typename T>
+    inline Vector<T, 2> hammersley_sequence(
+        const size_t    r,
+        size_t          n,
+        size_t          count)
+    {
+        Vector<T, 2> p;
+        p[0] = static_cast<T>(n) / count;
+        p[1] = radical_inverse_base2<T>(r, n);
+        return p;
     }
 
     TEST_CASE(Generate2DScrambledHammersleySequenceImage)

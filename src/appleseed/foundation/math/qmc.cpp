@@ -26,41 +26,38 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_FOUNDATION_MATH_PRIMES_H
-#define APPLESEED_FOUNDATION_MATH_PRIMES_H
+// Interface header.
+#include "qmc.h"
 
-// Standard headers.
-#include <cstddef>
+// appleseed.foundation headers.
+#include "foundation/math/permutation.h"
 
-//
-// On Windows, define FOUNDATIONDLL to __declspec(dllexport) when building the DLL
-// and to __declspec(dllimport) when building an application using the DLL.
-// Other platforms don't use this export mechanism and the symbol FOUNDATIONDLL is
-// defined to evaluate to nothing.
-//
-
-#ifndef FOUNDATIONDLL
-#ifdef _WIN32
-#ifdef APPLESEED_FOUNDATION_EXPORTS
-#define FOUNDATIONDLL __declspec(dllexport)
-#else
-#define FOUNDATIONDLL __declspec(dllimport)
-#endif
-#else
-#define FOUNDATIONDLL
-#endif
-#endif
+using namespace libdivide;
 
 namespace foundation
 {
 
-//
-// The first N primes.
-//
+PrimeBase PrimeBases[PrimeTableSize];
 
-const size_t PrimeTableSize = 1000;
-FOUNDATIONDLL extern size_t Primes[PrimeTableSize];
+namespace
+{
+    struct InitializePrimeBases
+    {
+        InitializePrimeBases()
+        {
+            for (size_t i = 0; i < PrimeTableSize; ++i)
+            {
+                const size_t prime = Primes[i];
+                PrimeBase& pb = PrimeBases[i];
+                pb.m_prime = prime;
+                pb.m_prime_rcp = 1.0 / prime;
+                pb.m_prime_divider = divider<size_t>(prime);
+                pb.m_permutation = FaurePermutations[i];
+            }
+        }
+    };
 
-}       // namespace foundation
+    InitializePrimeBases initialize_prime_bases;
+}
 
-#endif  // !APPLESEED_FOUNDATION_MATH_PRIMES_H
+}   // namespace foundation
