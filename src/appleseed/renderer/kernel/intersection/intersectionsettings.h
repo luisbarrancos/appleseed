@@ -73,7 +73,7 @@ typedef foundation::TriangleSSK<double> TriangleType;
 typedef foundation::TriangleSSKSupportPlane<double> TriangleSupportPlaneType;
 
 // Maximum triangle duplication rate.
-const double TriangleTreeMaxDuplication = 2.0;
+const double TriangleTreeMaxDuplication = 4.0;
 
 // Maximum number of triangles per leaf.
 const size_t TriangleTreeMaxLeafSize = 1;
