@@ -449,9 +449,8 @@ void Builder<Tree, LeafFactory, LeafSplitter, Timer>::subdivide(
     // Compute maximum tree size, given the maximum duplication rate.
     const size_t max_tree_size = truncate<size_t>(tree_size * max_duplication_rate);
 
-    // Subdivide until there is no node to split anymore,
-    // or until the maximum tree size has been reached.
-    while (!leaf_queue.empty() && tree_size < max_tree_size)
+    // Subdivide until there is no node to split anymore.
+    while (!leaf_queue.empty())
     {
         // Get leaf record and leaf info of next leaf to split.
         const LeafRecordType leaf_record = leaf_queue.top();
@@ -468,101 +467,106 @@ void Builder<Tree, LeafFactory, LeafSplitter, Timer>::subdivide(
 
         // Attempt to split the leaf.
         SplitType split;
-        if (splitter.split(leaf, leaf_info, split))
-        {
-            // Compute the indices of the child leaves and child nodes.
-            const size_t left_leaf_index  = leaf_index;
-            const size_t right_leaf_index = tree.m_leaves.size();
-            const size_t left_node_index  = tree.m_nodes.size();
-            const size_t right_node_index = left_node_index + 1;
+        if (!splitter.split(leaf, leaf_info, split))
+            continue;
 
-            // Compute the depth of the child leaves.
-            const size_t child_depth = leaf_info.get_node_depth() + 1;
+        // Compute the indices of the child leaves and child nodes.
+        const size_t left_leaf_index  = leaf_index;
+        const size_t right_leaf_index = tree.m_leaves.size();
+        const size_t left_node_index  = tree.m_nodes.size();
+        const size_t right_node_index = left_node_index + 1;
 
-            // Compute the bounding box of the child leaves.
-            AABBType left_leaf_bbox;
-            AABBType right_leaf_bbox;
-            split_bbox(
-                leaf_info.get_bbox(),
-                split,
-                left_leaf_bbox,
-                right_leaf_bbox);
+        // Compute the depth of the child leaves.
+        const size_t child_depth = leaf_info.get_node_depth() + 1;
 
-            // Create LeafInfo for left and right leaves.
-            const LeafInfoType left_leaf_info(child_depth, left_leaf_bbox);
-            const LeafInfoType right_leaf_info(child_depth, right_leaf_bbox);
+        // Compute the bounding box of the child leaves.
+        AABBType left_leaf_bbox;
+        AABBType right_leaf_bbox;
+        split_bbox(
+            leaf_info.get_bbox(),
+            split,
+            left_leaf_bbox,
+            right_leaf_bbox);
 
-            // Sort the elements of the leaf into the child leaves.
-            splitter.sort(
-                leaf,
-                leaf_info,
-                split,
-                *left_leaf,
-                left_leaf_info,
-                *right_leaf,
-                right_leaf_info);
+        // Create LeafInfo for left and right leaves.
+        const LeafInfoType left_leaf_info(child_depth, left_leaf_bbox);
+        const LeafInfoType right_leaf_info(child_depth, right_leaf_bbox);
 
-            // Count the number of objects in the parent, left and right leaves.
-            const size_t leaf_size = leaf.get_size();
-            const size_t left_leaf_size = left_leaf->get_size();
-            const size_t right_leaf_size = right_leaf->get_size();
-            assert(left_leaf_size + right_leaf_size >= leaf_size);
+        // Sort the elements of the leaf into the child leaves.
+        splitter.sort(
+            leaf,
+            leaf_info,
+            split,
+            *left_leaf,
+            left_leaf_info,
+            *right_leaf,
+            right_leaf_info);
 
-            // Update the tree size.
-            tree_size += left_leaf_size + right_leaf_size;
-            if (tree_size > leaf_size)
-                tree_size -= leaf_size;
-            else tree_size = 0;
+        // Count the number of objects in the parent, left and right leaves.
+        const size_t leaf_size = leaf.get_size();
+        const size_t left_leaf_size = left_leaf->get_size();
+        const size_t right_leaf_size = right_leaf->get_size();
+        const size_t combined_size = left_leaf_size + right_leaf_size;
+        assert(combined_size >= leaf_size);
 
-            // Replace the parent leaf with its left child.
-            std::swap(tree.m_leaves[leaf_index], left_leaf);
+        // When the tree has reached its maximum size, reject splits that create more duplication.
+        if (tree_size >= max_tree_size && combined_size > leaf_size)
+            continue;
 
-            // Append the right child to the leaf vector.
-            tree.m_leaves.push_back(right_leaf);
+        // Update the tree size.
+        tree_size += combined_size;
+        if (tree_size > leaf_size)
+            tree_size -= leaf_size;
+        else tree_size = 0;
 
-            // Recycle the left leaf (which is really the parent leaf)
-            // and create a new right leaf.
-            left_leaf->clear();
-            right_leaf = factory.create_leaf();
+        // Replace the parent leaf with its left child.
+        std::swap(tree.m_leaves[leaf_index], left_leaf);
 
-            // Transform the leaf node to an interior node.
-            node.set_type(NodeType::Interior);
-            node.set_child_node_index(left_node_index);
-            node.set_split_dim(split.m_dimension);
-            node.set_split_abs(split.m_abscissa);
+        // Append the right child to the leaf vector.
+        tree.m_leaves.push_back(right_leaf);
 
-            // Create the left node.
-            NodeType left_node;
-            left_node.set_type(NodeType::Leaf);
-            left_node.set_leaf_index(left_leaf_index);
-            left_node.set_leaf_size(left_leaf_size);
-            tree.m_nodes.push_back(left_node);
+        // Recycle the left leaf (which is really the parent leaf)
+        // and create a new right leaf.
+        left_leaf->clear();
+        right_leaf = factory.create_leaf();
 
-            // Create the right node.
-            NodeType right_node;
-            right_node.set_type(NodeType::Leaf);
-            right_node.set_leaf_index(right_leaf_index);
-            right_node.set_leaf_size(right_leaf_size);
-            tree.m_nodes.push_back(right_node);
+        // Transform the leaf node to an interior node.
+        node.set_type(NodeType::Interior);
+        node.set_child_node_index(left_node_index);
+        node.set_split_dim(split.m_dimension);
+        node.set_split_abs(split.m_abscissa);
 
-            // Insert the left leaf into the leaf queue.
-            insert_leaf_record(
-                tree,                   // tree
-                splitter,               // leaf splitter
-                leaf_queue,             // leaf queue
-                left_leaf_info,         // leaf info
-                left_leaf_index,        // leaf index
-                left_node_index);       // node index
+        // Create the left node.
+        NodeType left_node;
+        left_node.set_type(NodeType::Leaf);
+        left_node.set_leaf_index(left_leaf_index);
+        left_node.set_leaf_size(left_leaf_size);
+        tree.m_nodes.push_back(left_node);
 
-            // Insert the right leaf into the leaf queue.
-            insert_leaf_record(
-                tree,                   // tree
-                splitter,               // leaf splitter
-                leaf_queue,             // leaf queue
-                right_leaf_info,        // leaf info
-                right_leaf_index,       // leaf index
-                right_node_index);      // node index
-        }
+        // Create the right node.
+        NodeType right_node;
+        right_node.set_type(NodeType::Leaf);
+        right_node.set_leaf_index(right_leaf_index);
+        right_node.set_leaf_size(right_leaf_size);
+        tree.m_nodes.push_back(right_node);
+
+        // Insert the left leaf into the leaf queue.
+        insert_leaf_record(
+            tree,                   // tree
+            splitter,               // leaf splitter
+            leaf_queue,             // leaf queue
+            left_leaf_info,         // leaf info
+            left_leaf_index,        // leaf index
+            left_node_index);       // node index
+
+        // Insert the right leaf into the leaf queue.
+        insert_leaf_record(
+            tree,                   // tree
+            splitter,               // leaf splitter
+            leaf_queue,             // leaf queue
+            right_leaf_info,        // leaf info
+            right_leaf_index,       // leaf index
+            right_node_index);      // node index
     }
 
     delete left_leaf;
