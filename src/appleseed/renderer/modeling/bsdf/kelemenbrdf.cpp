@@ -173,7 +173,7 @@ namespace
             const Vector3d& N = shading_basis.get_normal();
 
             // Compute the outgoing angle.
-            const double dot_VN = abs(dot(V, N));
+            const double dot_VN = max(dot(V, N), 0.0);
 
             // Compute the specular albedo for the outgoing angle.
             Spectrum specular_albedo_V;
@@ -212,8 +212,8 @@ namespace
                 H = normalize(incoming + V);
 
                 dot_LN = wi.y;
-                dot_HN = abs(dot(H, N));
-                dot_HV = abs(dot(H, V));
+                dot_HN = max(dot(H, N), 0.0);
+                dot_HV = dot(H, V);
             }
             else if (s[2] < matte_prob + specular_prob)
             {
@@ -225,13 +225,20 @@ namespace
                 // Transform the halfway vector to parent space.
                 H = shading_basis.transform_to_parent(local_H);
 
-                dot_HV = abs(dot(H, V));
+                dot_HV = dot(H, V);
 
                 // The incoming direction is the reflection of V around H.
                 incoming = (dot_HV + dot_HV) * H - V;
 
-                dot_LN = abs(dot(incoming, N));
+                dot_LN = dot(incoming, N);
                 dot_HN = local_H.y;
+
+                // No reflection in or below the shading surface.
+                if (dot_LN <= 0.0)
+                {
+                    mode = None;
+                    return;
+                }
             }
             else
             {
@@ -296,20 +303,17 @@ namespace
             const Vector3d& L = incoming;
             const Vector3d& N = shading_basis.get_normal();
 
-            double dot_VN = dot(V, N);
-            double dot_LN = dot(L, N);
+            const double dot_VN = dot(V, N);
+            const double dot_LN = dot(L, N);
 
-            // The incoming and outgoing directions must be in the same hemisphere.
-            if (dot_VN * dot_LN <= 0.0)
-                return 0.0;
-
-            dot_VN = abs(dot_VN);
-            dot_LN = abs(dot_LN);
+            // No reflection in or below the shading surface.
+            if (dot_LN <= 0.0 || dot_VN <= 0.0)
+                return false;
 
             // Compute the halfway vector.
             const Vector3d H = normalize(L + V);
-            const double dot_HN = abs(dot(H, N));
-            const double dot_HL = abs(dot(H, L));
+            const double dot_HN = dot(H, N);
+            const double dot_HL = dot(H, L);
 
             // Compute the specular albedos for the outgoing and incoming angles.
             Spectrum specular_albedo_V, specular_albedo_L;
@@ -373,15 +377,12 @@ namespace
             const Vector3d& L = incoming;
             const Vector3d& N = shading_basis.get_normal();
 
-            double dot_VN = dot(V, N);
-            double dot_LN = dot(L, N);
+            const double dot_VN = dot(V, N);
+            const double dot_LN = dot(L, N);
 
-            // The incoming and outgoing directions must be in the same hemisphere.
-            if (dot_VN * dot_LN <= 0.0)
+            // No reflection in or below the shading surface.
+            if (dot_LN <= 0.0 || dot_VN <= 0.0)
                 return 0.0;
-
-            dot_VN = abs(dot_VN);
-            dot_LN = abs(dot_LN);
 
             // Compute the halfway vector.
             const Vector3d H = normalize(L + V);

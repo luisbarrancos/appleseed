@@ -97,6 +97,7 @@ namespace
             value = values->m_exitance;
 
             probability = wo.y * RcpPi;
+            assert(probability > 0.0);
         }
 
         virtual void evaluate(
@@ -108,6 +109,15 @@ namespace
         {
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
+
+            const double cos_on = dot(outgoing, shading_basis.get_normal());
+
+            // No emission in or below the shading surface.
+            if (cos_on <= 0.0)
+            {
+                value.set(0.0f);
+                return;
+            }
 
             const InputValues* values = static_cast<const InputValues*>(data);
             value = values->m_exitance;
@@ -124,10 +134,19 @@ namespace
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
 
+            const double cos_on = dot(outgoing, shading_basis.get_normal());
+
+            // No emission in or below the shading surface.
+            if (cos_on <= 0.0)
+            {
+                value.set(0.0f);
+                probability = 0.0;
+                return;
+            }
+
             const InputValues* values = static_cast<const InputValues*>(data);
             value = values->m_exitance;
 
-            const double cos_on = abs(dot(outgoing, shading_basis.get_normal()));
             probability = cos_on * RcpPi;
         }
 
@@ -140,7 +159,12 @@ namespace
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
 
-            const double cos_on = abs(dot(outgoing, shading_basis.get_normal()));
+            const double cos_on = dot(outgoing, shading_basis.get_normal());
+
+            // No emission in or below the shading surface.
+            if (cos_on <= 0.0)
+                return 0.0;
+
             return cos_on * RcpPi;
         }
 

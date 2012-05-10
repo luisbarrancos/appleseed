@@ -361,6 +361,11 @@ void DirectLightingIntegrator::add_emitting_triangle_sample_contribution(
     // Compute the incoming direction in world space.
     Vector3d incoming = sample.m_point - m_point;
 
+    // Cull light samples behind the shading surface.
+    double cos_in = dot(incoming, m_shading_basis.get_normal());
+    if (cos_in <= 0.0)
+        return;
+
     // Cull samples on lights emitting in the wrong direction.
     double cos_on = dot(-incoming, sample.m_shading_normal);
     if (cos_on <= 0.0)
@@ -377,6 +382,7 @@ void DirectLightingIntegrator::add_emitting_triangle_sample_contribution(
 
     // Normalize the incoming direction.
     incoming *= rcp_sample_distance;
+    cos_in *= rcp_sample_distance;
     cos_on *= rcp_sample_distance;
 
     // Evaluate the BSDF.
@@ -434,13 +440,18 @@ void DirectLightingIntegrator::add_light_sample_contribution(
     Spectrum&               radiance,
     AOVCollection&          aovs)
 {
+    // Compute the incoming direction in world space.
+    Vector3d incoming = sample.m_point - m_point;
+
+    // Cull light samples behind the shading surface.
+    double cos_in = dot(incoming, m_shading_basis.get_normal());
+    if (cos_in <= 0.0)
+        return;
+
     // Compute the transmission factor between the light sample and the shading point.
     double transmission;
     if (!check_visibility(sampling_context, sample, transmission))
         return;
-
-    // Compute the incoming direction in world space.
-    Vector3d incoming = sample.m_point - m_point;
 
     // Compute the square distance between the light sample and the shading point.
     const double rcp_sample_square_distance = 1.0 / square_norm(incoming);
@@ -448,6 +459,7 @@ void DirectLightingIntegrator::add_light_sample_contribution(
 
     // Normalize the incoming direction.
     incoming *= rcp_sample_distance;
+    cos_in *= rcp_sample_distance;
 
     // Evaluate the BSDF.
     Spectrum bsdf_value;

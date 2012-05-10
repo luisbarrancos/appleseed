@@ -166,8 +166,8 @@ namespace
             const double cos_in = dot(incoming, n);
             const double cos_on = dot(outgoing, n);
 
-            // The incoming and outgoing directions must be in the same hemisphere.
-            if (cos_in * cos_on <= 0.0)
+            // No reflection in or below the shading surface.
+            if (cos_in <= 0.0 || cos_on <= 0.0)
                 return false;
 
             // Compute the BRDF value.
@@ -182,7 +182,7 @@ namespace
 
             // Compute the probability density of the sampled direction.
             if (probability)
-                *probability = abs(cos_in) * RcpPi;
+                *probability = cos_in * RcpPi;
 
             return true;
         }
@@ -198,11 +198,11 @@ namespace
             const double cos_in = dot(incoming, n);
             const double cos_on = dot(outgoing, n);
 
-            // The incoming and outgoing directions must be in the same hemisphere.
-            if (cos_in * cos_on <= 0.0)
+            // No reflection in or below the shading surface.
+            if (cos_in <= 0.0 || cos_on <= 0.0)
                 return 0.0;
 
-            return abs(cos_in) * RcpPi;
+            return cos_in * RcpPi;
         }
 
       private:

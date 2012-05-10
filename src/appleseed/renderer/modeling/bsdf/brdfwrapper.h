@@ -115,6 +115,7 @@ void BRDFWrapper<BRDFImpl>::sample(
 {
     assert(foundation::is_normalized(geometric_normal));
     assert(foundation::is_normalized(outgoing));
+    assert(foundation::dot(outgoing, geometric_normal) >= 0.0);
 
     BRDFImpl::sample(
         sampling_context,
@@ -132,19 +133,17 @@ void BRDFWrapper<BRDFImpl>::sample(
     if (mode == None)
         return;
 
+    assert(foundation::is_normalized(incoming));
+    assert(foundation::dot(incoming, geometric_normal) >= 0.0);
     assert(probability == DiracDelta || probability > 0.0);
 
     if (cosine_mult)
     {
         if (adjoint)
         {
+            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             const double cos_ig = foundation::dot(incoming, geometric_normal);
             const double cos_og = foundation::dot(outgoing, geometric_normal);
-
-            assert(cos_ig >= 0.0);
-            assert(cos_og >= 0.0);
-
-            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             value *= static_cast<float>(cos_on * cos_ig / cos_og);
         }
         else

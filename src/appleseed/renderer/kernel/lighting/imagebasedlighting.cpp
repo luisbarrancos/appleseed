@@ -189,6 +189,12 @@ namespace
                 env_value,
                 env_prob);
 
+            // Cull samples behind the shading surface.
+            assert(is_normalized(incoming));
+            const double cos_in = dot(incoming, shading_basis.get_normal());
+            if (cos_in < 0.0)
+                continue;
+
             // Compute the transmission factor toward the incoming direction.
             SamplingContext child_sampling_context(sampling_context);
             Tracer tracer(
