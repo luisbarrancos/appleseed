@@ -109,14 +109,8 @@ namespace
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
 
-            const double cos_on = dot(outgoing, shading_basis.get_normal());
-
-            if (cos_on > 0.0)
-            {
-                const InputValues* values = static_cast<const InputValues*>(data);
-                value = values->m_exitance;
-            }
-            else value.set(0.0f);
+            const InputValues* values = static_cast<const InputValues*>(data);
+            value = values->m_exitance;
         }
 
         virtual void evaluate(
@@ -130,19 +124,11 @@ namespace
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
 
-            const double cos_on = dot(outgoing, shading_basis.get_normal());
+            const InputValues* values = static_cast<const InputValues*>(data);
+            value = values->m_exitance;
 
-            if (cos_on > 0.0)
-            {
-                const InputValues* values = static_cast<const InputValues*>(data);
-                value = values->m_exitance;
-                probability = cos_on * RcpPi;
-            }
-            else
-            {
-                value.set(0.0f);
-                probability = 0.0;
-            }
+            const double cos_on = abs(dot(outgoing, shading_basis.get_normal()));
+            probability = cos_on * RcpPi;
         }
 
         virtual double evaluate_pdf(
@@ -154,9 +140,8 @@ namespace
             assert(is_normalized(geometric_normal));
             assert(is_normalized(outgoing));
 
-            const double cos_on = dot(outgoing, shading_basis.get_normal());
-
-            return cos_on > 0.0 ? cos_on * RcpPi : 0.0;
+            const double cos_on = abs(dot(outgoing, shading_basis.get_normal()));
+            return cos_on * RcpPi;
         }
 
       private:

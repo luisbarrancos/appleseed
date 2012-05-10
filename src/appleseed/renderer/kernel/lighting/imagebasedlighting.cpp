@@ -94,8 +94,8 @@ namespace
             if (bsdf_mode != BSDF::Diffuse)
                 continue;
 
-            if (bsdf_prob > 0.0)
-                bsdf_value /= static_cast<float>(bsdf_prob);
+            // Since we're limiting ourselves to the diffuse case, the BSDF should not be a Dirac delta.
+            assert(bsdf_prob > 0.0);
 
             // Compute the transmission factor toward the incoming direction.
             Tracer tracer(
@@ -127,14 +127,14 @@ namespace
 
             // Compute MIS weight.
             const double mis_weight =
-                bsdf_prob < 0.0
+                bsdf_prob == BSDF::DiracDelta
                     ? 1.0
                     : mis_power2(
                           bsdf_sample_count * bsdf_prob,
                           env_sample_count * env_prob);
 
             // Add the contribution of this sample to the illumination.
-            env_value *= static_cast<float>(transmission * mis_weight);
+            env_value *= static_cast<float>(transmission * mis_weight / bsdf_prob);
             env_value *= bsdf_value;
             radiance += env_value;
         }
@@ -188,12 +188,6 @@ namespace
                 incoming,
                 env_value,
                 env_prob);
-
-            // Cull samples behind the shading surface.
-            assert(is_normalized(incoming));
-            const double cos_in = dot(incoming, shading_basis.get_normal());
-            if (cos_in < 0.0)
-                continue;
 
             // Compute the transmission factor toward the incoming direction.
             SamplingContext child_sampling_context(sampling_context);

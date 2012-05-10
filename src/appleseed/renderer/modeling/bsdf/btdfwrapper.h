@@ -129,13 +129,16 @@ void BTDFWrapper<BTDFImpl>::sample(
         probability,
         mode);
 
+    if (mode == None)
+        return;
+
     if (cosine_mult)
     {
         if (adjoint)
         {
-            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             const double cos_ig = std::abs(foundation::dot(incoming, geometric_normal));
             const double cos_og = std::abs(foundation::dot(outgoing, geometric_normal));
+            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             value *= static_cast<float>(cos_on * cos_ig / cos_og);
         }
         else
@@ -183,9 +186,9 @@ bool BTDFWrapper<BTDFImpl>::evaluate(
     {
         if (adjoint)
         {
-            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             const double cos_ig = std::abs(foundation::dot(incoming, geometric_normal));
             const double cos_og = std::abs(foundation::dot(outgoing, geometric_normal));
+            const double cos_on = std::abs(foundation::dot(outgoing, shading_basis.get_normal()));
             value *= static_cast<float>(cos_on * cos_ig / cos_og);
         }
         else

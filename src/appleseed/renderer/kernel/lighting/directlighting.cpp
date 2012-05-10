@@ -233,8 +233,8 @@ void DirectLightingIntegrator::take_single_bsdf_sample(
     if (bsdf_mode != BSDF::Diffuse)
         return;
 
-    if (bsdf_prob > 0.0)
-        bsdf_value /= static_cast<float>(bsdf_prob);
+    // Since we're limiting ourselves to the diffuse case, the BSDF should not be a Dirac delta.
+    assert(bsdf_prob > 0.0);
 
     // Trace a ray in the direction of the reflection.
     double weight;
@@ -259,6 +259,11 @@ void DirectLightingIntegrator::take_single_bsdf_sample(
     // Retrieve the EDF at the intersection point.
     const EDF* edf = material->get_edf();
     if (edf == 0)
+        return;
+
+    // Cull samples on lights emitting in the wrong direction.
+    const double cos_on = dot(-incoming, light_shading_point.get_shading_normal());
+    if (cos_on <= 0.0)
         return;
 
     // Evaluate the input values of the EDF.
@@ -286,7 +291,6 @@ void DirectLightingIntegrator::take_single_bsdf_sample(
     if (square_distance > 0.0)
     {
         // Transform bsdf_prob to surface area measure (Veach: 8.2.2.2 eq. 8.10).
-        const double cos_on = dot(-incoming, light_shading_point.get_shading_normal());
         const double bsdf_point_prob = bsdf_prob * cos_on / square_distance;
 
         // Compute the probability density wrt. surface area mesure of the light sample.
@@ -302,7 +306,7 @@ void DirectLightingIntegrator::take_single_bsdf_sample(
     }
 
     // Add the contribution of this sample to the illumination.
-    edf_value *= static_cast<float>(weight);
+    edf_value *= static_cast<float>(weight / bsdf_prob);
     edf_value *= bsdf_value;
     radiance += edf_value;
     aovs.add(edf->get_render_layer_index(), radiance);
@@ -357,14 +361,14 @@ void DirectLightingIntegrator::add_emitting_triangle_sample_contribution(
     // Compute the incoming direction in world space.
     Vector3d incoming = sample.m_point - m_point;
 
-    // Cull light samples behind the shading surface.
-    double cos_in = dot(incoming, m_shading_basis.get_normal());
-    if (cos_in <= 0.0)
-        return;
-
     // Cull samples on lights emitting in the wrong direction.
     double cos_on = dot(-incoming, sample.m_shading_normal);
     if (cos_on <= 0.0)
+        return;
+
+    // Compute the transmission factor between the light sample and the shading point.
+    double transmission;
+    if (!check_visibility(sampling_context, sample, transmission))
         return;
 
     // Compute the square distance between the light sample and the shading point.
@@ -373,13 +377,7 @@ void DirectLightingIntegrator::add_emitting_triangle_sample_contribution(
 
     // Normalize the incoming direction.
     incoming *= rcp_sample_distance;
-    cos_in *= rcp_sample_distance;
     cos_on *= rcp_sample_distance;
-
-    // Compute the transmission factor between the light sample and the shading point.
-    double transmission;
-    if (!check_visibility(sampling_context, sample, transmission))
-        return;
 
     // Evaluate the BSDF.
     Spectrum bsdf_value;
@@ -436,13 +434,13 @@ void DirectLightingIntegrator::add_light_sample_contribution(
     Spectrum&               radiance,
     AOVCollection&          aovs)
 {
+    // Compute the transmission factor between the light sample and the shading point.
+    double transmission;
+    if (!check_visibility(sampling_context, sample, transmission))
+        return;
+
     // Compute the incoming direction in world space.
     Vector3d incoming = sample.m_point - m_point;
-
-    // Cull light samples behind the shading surface.
-    double cos_in = dot(incoming, m_shading_basis.get_normal());
-    if (cos_in <= 0.0)
-        return;
 
     // Compute the square distance between the light sample and the shading point.
     const double rcp_sample_square_distance = 1.0 / square_norm(incoming);
@@ -450,16 +448,9 @@ void DirectLightingIntegrator::add_light_sample_contribution(
 
     // Normalize the incoming direction.
     incoming *= rcp_sample_distance;
-    cos_in *= rcp_sample_distance;
-
-    // Compute the transmission factor between the light sample and the shading point.
-    double transmission;
-    if (!check_visibility(sampling_context, sample, transmission))
-        return;
 
     // Evaluate the BSDF.
     Spectrum bsdf_value;
-    double bsdf_prob;
     if (!m_bsdf.evaluate(
             m_bsdf_data,
             false,              // not adjoint
@@ -468,8 +459,7 @@ void DirectLightingIntegrator::add_light_sample_contribution(
             m_shading_basis,
             m_outgoing,
             incoming,
-            bsdf_value,
-            &bsdf_prob))
+            bsdf_value))
         return;
 
     const Light* light = sample.m_light;

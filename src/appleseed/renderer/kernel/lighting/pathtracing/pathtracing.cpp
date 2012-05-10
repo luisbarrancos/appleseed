@@ -231,9 +231,7 @@ namespace
                 const Vector3d& shading_normal = shading_point.get_shading_normal();
                 const Basis3d& shading_basis = shading_point.get_shading_basis();
                 const Material* material = shading_point.get_material();
-
                 const EDF* edf = material->get_edf();
-                const double cos_on = dot(outgoing, shading_normal);
 
                 // Evaluate the input values of the EDF (if any).
                 InputEvaluator edf_input_evaluator(m_texture_cache);
@@ -293,7 +291,7 @@ namespace
                         vertex_aovs.add(m_env_edf->get_render_layer_index(), ibl_radiance);
                     }
 
-                    if (edf && cos_on > 0.0)
+                    if (edf)
                     {
                         // Compute the emitted radiance.
                         Spectrum emitted_radiance;
@@ -309,6 +307,7 @@ namespace
                         if (prev_bsdf_mode != BSDF::Specular && square_distance > 0.0)
                         {
                             // Transform prev_bsdf_prob to surface area measure (Veach: 8.2.2.2 eq. 8.10).
+                            const double cos_on = abs(dot(outgoing, shading_normal));
                             const double bsdf_point_prob = prev_bsdf_prob * cos_on / square_distance;
 
                             // Compute the probability density wrt. surface area of choosing this point
@@ -333,24 +332,21 @@ namespace
                     vertex_aovs *= throughput;
                     m_path_aovs += vertex_aovs;
                 }
-                else
+                else if (edf)
                 {
-                    if (edf && cos_on > 0.0)
-                    {
-                        // Compute the emitted radiance.
-                        Spectrum emitted_radiance;
-                        edf->evaluate(
-                            edf_data,
-                            geometric_normal,
-                            shading_basis,
-                            outgoing,
-                            emitted_radiance);
+                    // Compute the emitted radiance.
+                    Spectrum emitted_radiance;
+                    edf->evaluate(
+                        edf_data,
+                        geometric_normal,
+                        shading_basis,
+                        outgoing,
+                        emitted_radiance);
 
-                        // Update the path radiance.
-                        emitted_radiance *= throughput;
-                        m_path_radiance += emitted_radiance;
-                        m_path_aovs.add(edf->get_render_layer_index(), emitted_radiance);
-                    }
+                    // Update the path radiance.
+                    emitted_radiance *= throughput;
+                    m_path_radiance += emitted_radiance;
+                    m_path_aovs.add(edf->get_render_layer_index(), emitted_radiance);
                 }
 
                 // Proceed with this path.
