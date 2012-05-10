@@ -224,7 +224,6 @@ namespace
                 const Vector3d& shading_normal = shading_point.get_shading_normal();
                 const Basis3d& shading_basis = shading_point.get_shading_basis();
                 const Material* material = shading_point.get_material();
-                const EDF* edf = material->get_edf();
 
                 // Compute direct lighting. We're sampling both the lights and the BSDF,
                 // unlike in the path tracer where we're only sampling the lights.
@@ -277,7 +276,10 @@ namespace
                     vertex_aovs.add(m_env_edf->get_render_layer_index(), ibl_radiance);
                 }
 
-                if (edf)
+                const EDF* edf = material->get_edf();
+                const double cos_on = dot(outgoing, shading_normal);
+
+                if (edf && cos_on > 0.0)
                 {
                     // Evaluate the input values of the EDF.
                     InputEvaluator edf_input_evaluator(m_texture_cache);
@@ -300,7 +302,6 @@ namespace
                     if (prev_bsdf_mode != BSDF::Specular && square_distance > 0.0)
                     {
                         // Transform prev_bsdf_prob to surface area measure (Veach: 8.2.2.2 eq. 8.10).
-                        const double cos_on = abs(dot(outgoing, shading_normal));
                         const double bsdf_point_prob = prev_bsdf_prob * cos_on / square_distance;
 
                         // Compute the probability density wrt. surface area of choosing this point
