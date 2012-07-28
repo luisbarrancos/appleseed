@@ -203,10 +203,14 @@ namespace
               , m_light_sampler(light_sampler)
               , m_shading_context(shading_context)
               , m_texture_cache(shading_context.get_texture_cache())
-              , m_env_edf(scene.get_environment()->get_environment_edf())
               , m_path_radiance(path_radiance)
               , m_path_aovs(path_aovs)
             {
+                const Environment* env = scene.get_environment();
+                m_env_edf[BSDF::Diffuse] = env->get_diffuse_env_edf();
+                m_env_edf[BSDF::Glossy] = env->get_glossy_env_edf();
+                m_env_edf[BSDF::Specular] = env->get_specular_env_edf();
+
                 m_path_radiance.set(0.0f);
                 m_path_aovs.set(0.0f);
             }
@@ -289,7 +293,7 @@ namespace
                         vertex_aovs.set(0.0f);
                     }
 
-                    if (m_env_edf && m_params.m_enable_ibl)
+                    if (m_env_edf[BSDF::Diffuse] && m_params.m_enable_ibl)
                     {
                         // Compute image-based lighting. We're sampling both the lights and
                         // the BSDF. There's no double contribution for diffuse BSDF samples
@@ -300,7 +304,7 @@ namespace
                         compute_image_based_lighting(
                             sampling_context,
                             m_shading_context,
-                            *m_env_edf,
+                            *m_env_edf[BSDF::Diffuse],
                             point,
                             geometric_normal,
                             shading_basis,
@@ -313,7 +317,7 @@ namespace
                             ibl_radiance,
                             &shading_point);
                         vertex_radiance += ibl_radiance;
-                        vertex_aovs.add(m_env_edf->get_render_layer_index(), ibl_radiance);
+                        vertex_aovs.add(m_env_edf[BSDF::Diffuse]->get_render_layer_index(), ibl_radiance);
                     }
 
                     if (edf && cos_on > 0.0 && (m_params.m_enable_dl || path_length > 2))
@@ -386,8 +390,8 @@ namespace
                 const BSDF::Mode        prev_bsdf_mode,
                 const Spectrum&         throughput)
             {
-                // Can't look up the environment if there's no environment EDF.
-                if (m_env_edf == 0)
+                // Can't look up the environment if there's no environment shader.
+                if (m_env_edf[prev_bsdf_mode] == 0)
                     return;
 
                 //
@@ -426,7 +430,7 @@ namespace
                 // Evaluate the environment EDF.
                 InputEvaluator input_evaluator(m_texture_cache);
                 Spectrum environment_radiance;
-                m_env_edf->evaluate(
+                m_env_edf[prev_bsdf_mode]->evaluate(
                     input_evaluator,
                     -outgoing,
                     environment_radiance);
@@ -434,17 +438,19 @@ namespace
                 // Update the path radiance.
                 environment_radiance *= throughput;
                 m_path_radiance += environment_radiance;
-                m_path_aovs.add(m_env_edf->get_render_layer_index(), environment_radiance);
+                m_path_aovs.add(
+                    m_env_edf[prev_bsdf_mode]->get_render_layer_index(),
+                    environment_radiance);
             }
 
           private:
-            const Parameters&       m_params;
-            const LightSampler&     m_light_sampler;
-            const ShadingContext&   m_shading_context;
-            TextureCache&           m_texture_cache;
-            const EnvironmentEDF*   m_env_edf;
-            Spectrum&               m_path_radiance;
-            SpectrumStack&          m_path_aovs;
+            const Parameters&           m_params;
+            const LightSampler&         m_light_sampler;
+            const ShadingContext&       m_shading_context;
+            TextureCache&               m_texture_cache;
+            const EnvironmentEDF*       m_env_edf[BSDF::MaxScatteringMode];
+            Spectrum&                   m_path_radiance;
+            SpectrumStack&              m_path_aovs;
         };
 
         const Parameters        m_params;

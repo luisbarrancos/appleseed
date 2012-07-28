@@ -62,7 +62,9 @@ class RENDERERDLL Environment
         const EnvironmentShaderContainer&   environment_shaders);
 
     // Return the EDF of this environment, or 0 if the environment doesn't have one.
-    EnvironmentEDF* get_environment_edf() const;
+    EnvironmentEDF* get_diffuse_env_edf() const;
+    EnvironmentEDF* get_glossy_env_edf() const;
+    EnvironmentEDF* get_specular_env_edf() const;
 
     // Return the shader of this environment, or 0 if the environment doesn't have one.
     EnvironmentShader* get_environment_shader() const;
@@ -70,8 +72,10 @@ class RENDERERDLL Environment
   private:
     friend class EnvironmentFactory;
 
-    EnvironmentEDF*     m_environment_edf;
-    EnvironmentShader*  m_environment_shader;
+    EnvironmentEDF*     m_diffuse_env_edf;
+    EnvironmentEDF*     m_glossy_env_edf;
+    EnvironmentEDF*     m_specular_env_edf;
+    EnvironmentShader*  m_env_shader;
 
     // Constructor.
     Environment(
@@ -104,14 +108,24 @@ class RENDERERDLL EnvironmentFactory
 // Environment class implementation.
 //
 
-inline EnvironmentEDF* Environment::get_environment_edf() const
+inline EnvironmentEDF* Environment::get_diffuse_env_edf() const
 {
-    return m_environment_edf;
+    return m_diffuse_env_edf;
+}
+
+inline EnvironmentEDF* Environment::get_glossy_env_edf() const
+{
+    return m_glossy_env_edf;
+}
+
+inline EnvironmentEDF* Environment::get_specular_env_edf() const
+{
+    return m_specular_env_edf;
 }
 
 inline EnvironmentShader* Environment::get_environment_shader() const
 {
-    return m_environment_shader;
+    return m_env_shader;
 }
 
 }       // namespace renderer

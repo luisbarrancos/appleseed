@@ -188,7 +188,7 @@ namespace
               , m_light_sampler(light_sampler)
               , m_shading_context(shading_context)
               , m_texture_cache(shading_context.get_texture_cache())
-              , m_env_edf(scene.get_environment()->get_environment_edf())
+              , m_env_edf(scene.get_environment()->get_diffuse_env_edf())
               , m_path_radiance(path_radiance)
               , m_path_aovs(path_aovs)
             {

@@ -149,7 +149,7 @@ namespace
           , m_params(params)
           , m_scene(scene)
           , m_frame(frame)
-          , m_env_edf(scene.get_environment()->get_environment_edf())
+          , m_env_edf(scene.get_environment()->get_diffuse_env_edf())
           , m_safe_scene_radius(scene.compute_radius() * (1.0 + 1.0e-3))
           , m_disk_point_prob(1.0 / (Pi * square(m_safe_scene_radius)))
           , m_light_sampler(light_sampler)

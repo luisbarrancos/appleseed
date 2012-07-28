@@ -196,6 +196,20 @@ namespace
             assign_entity_to_render_layer(aov_images, mapping, format, *i);
     }
 
+    void assign_entity_to_render_layer(
+        ImageStack&             aov_images,
+        RenderLayerMapping&     mapping,
+        const PixelFormat       format,
+        Assembly&               assembly)
+    {
+        assign_entity_to_render_layer(aov_images, mapping, format, static_cast<Entity&>(assembly));
+
+        assign_entities_to_render_layers(aov_images, mapping, format, assembly.edfs());
+        assign_entities_to_render_layers(aov_images, mapping, format, assembly.lights());
+        assign_entities_to_render_layers(aov_images, mapping, format, assembly.objects());
+        assign_entities_to_render_layers(aov_images, mapping, format, assembly.object_instances());
+    }
+
     void assign_entities_to_render_layers(
         ImageStack&             aov_images,
         const PixelFormat       format,
@@ -205,19 +219,7 @@ namespace
 
         assign_entities_to_render_layers(aov_images, mapping, format, scene.assemblies());
         assign_entities_to_render_layers(aov_images, mapping, format, scene.assembly_instances());
-
-        for (const_each<AssemblyContainer> i = scene.assemblies(); i; ++i)
-        {
-            assign_entities_to_render_layers(aov_images, mapping, format, i->edfs());
-            assign_entities_to_render_layers(aov_images, mapping, format, i->lights());
-            assign_entities_to_render_layers(aov_images, mapping, format, i->objects());
-            assign_entities_to_render_layers(aov_images, mapping, format, i->object_instances());
-        }
-
-        EnvironmentEDF* env_edf = scene.get_environment()->get_environment_edf();
-
-        if (env_edf)
-            assign_entity_to_render_layer(aov_images, mapping, format, *env_edf);
+        assign_entities_to_render_layers(aov_images, mapping, format, scene.environment_edfs());
     }
 }
 

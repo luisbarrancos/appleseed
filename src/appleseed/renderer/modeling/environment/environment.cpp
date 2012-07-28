@@ -52,9 +52,25 @@ Environment::Environment(
     const char*                         name,
     const ParamArray&                   params)
   : Entity(g_class_uid, params)
-  , m_environment_edf(0)
-  , m_environment_shader(0)
+  , m_diffuse_env_edf(0)
+  , m_glossy_env_edf(0)
+  , m_specular_env_edf(0)
+  , m_env_shader(0)
 {
+    if (m_params.strings().exist("environment_edf"))
+    {
+        const string environment_edf_name = m_params.get<string>("environment_edf");
+
+        if (!m_params.strings().exist("diffuse_environment_edf"))
+            m_params.insert("diffuse_environment_edf", environment_edf_name);
+
+        if (!m_params.strings().exist("glossy_environment_edf"))
+            m_params.insert("glossy_environment_edf", environment_edf_name);
+
+        if (!m_params.strings().exist("specular_environment_edf"))
+            m_params.insert("specular_environment_edf", environment_edf_name);
+    }
+
     set_name(name);
 }
 
@@ -67,10 +83,16 @@ void Environment::bind_entities(
     const EnvironmentEDFContainer&      environment_edfs,
     const EnvironmentShaderContainer&   environment_shaders)
 {
-    m_environment_edf =
-        get_optional_entity<EnvironmentEDF>(environment_edfs, m_params, "environment_edf");
+    m_diffuse_env_edf =
+        get_optional_entity<EnvironmentEDF>(environment_edfs, m_params, "diffuse_environment_edf");
 
-    m_environment_shader =
+    m_glossy_env_edf =
+        get_optional_entity<EnvironmentEDF>(environment_edfs, m_params, "glossy_environment_edf");
+
+    m_specular_env_edf =
+        get_optional_entity<EnvironmentEDF>(environment_edfs, m_params, "specular_environment_edf");
+
+    m_env_shader =
         get_optional_entity<EnvironmentShader>(environment_shaders, m_params, "environment_shader");
 }
 
@@ -95,8 +117,24 @@ DictionaryArray EnvironmentFactory::get_widget_definitions()
 
     definitions.push_back(
         Dictionary()
-            .insert("name", "environment_edf")
-            .insert("label", "Environment EDF")
+            .insert("name", "diffuse_environment_edf")
+            .insert("label", "Diffuse Environment EDF")
+            .insert("widget", "entity_picker")
+            .insert("entity_types", Dictionary().insert("environment_edf", "Environment EDFs"))
+            .insert("use", "optional"));
+
+    definitions.push_back(
+        Dictionary()
+            .insert("name", "glossy_environment_edf")
+            .insert("label", "Glossy Environment EDF")
+            .insert("widget", "entity_picker")
+            .insert("entity_types", Dictionary().insert("environment_edf", "Environment EDFs"))
+            .insert("use", "optional"));
+
+    definitions.push_back(
+        Dictionary()
+            .insert("name", "specular_environment_edf")
+            .insert("label", "Specular Environment EDF")
             .insert("widget", "entity_picker")
             .insert("entity_types", Dictionary().insert("environment_edf", "Environment EDFs"))
             .insert("use", "optional"));
