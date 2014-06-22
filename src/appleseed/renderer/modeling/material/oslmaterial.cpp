@@ -29,6 +29,11 @@
 // Interface header.
 #include "oslmaterial.h"
 
+// appleseed.renderer headers.
+#include "renderer/modeling/bsdf/bsdf.h"
+#include "renderer/modeling/bsdf/oslbsdf.h"
+#include "renderer/modeling/shadergroup/shadergroup.h"
+
 // appleseed.foundation headers.
 #include "foundation/utility/containers/dictionary.h"
 #include "foundation/utility/containers/specializedarrays.h"
@@ -37,6 +42,88 @@ using namespace foundation;
 
 namespace renderer
 {
+
+namespace
+{
+    //
+    // OSL Material.
+    //
+
+    const char* Model = "osl_material";
+
+    class OSLMaterial 
+      : public Material
+    {
+      public:
+        OSLMaterial(
+            const char*                 name,
+            const ParamArray&           params)
+          : Material(name, params)
+        {
+            m_inputs.declare("osl_surface", InputFormatEntity, "");
+            m_inputs.declare("alpha_map", InputFormatScalar, "");
+        }
+
+        virtual void release() OVERRIDE
+        {
+            delete this;
+        }
+
+        virtual const char* get_model() const OVERRIDE
+        {
+            return Model;
+        }
+
+        virtual bool on_frame_begin(
+            const Project&              project,
+            const Assembly&             assembly,
+            foundation::AbortSwitch*    abort_switch = 0) OVERRIDE
+        {
+            if (!Material::on_frame_begin(project, assembly, abort_switch))
+                return false;
+
+            m_shader_group = get_uncached_osl_surface();
+
+            if (m_shader_group)
+            {
+                m_osl_bsdf = OSLBSDFFactory().create();
+                m_bsdf = m_osl_bsdf.get();
+                m_osl_bsdf->on_frame_begin(project, assembly, abort_switch);
+            }
+
+            return true;
+        }
+
+        virtual void on_frame_end(
+            const Project&              project,
+            const Assembly&             assembly) OVERRIDE
+        {
+            Material::on_frame_end(project, assembly);
+
+            if (m_osl_bsdf.get())
+            {
+                m_osl_bsdf->on_frame_end(project, assembly);
+                m_osl_bsdf.reset();
+            }
+
+            m_shader_group = 0;
+        }
+
+        virtual bool has_osl_surface() const OVERRIDE
+        {
+            return get_non_empty(m_params, "osl_surface") != 0;
+        }
+
+      private:
+        auto_release_ptr<BSDF> m_osl_bsdf;
+
+        virtual const ShaderGroup* get_uncached_osl_surface() const OVERRIDE
+        {
+            return static_cast<const ShaderGroup*>(m_inputs.get_entity("osl_surface"));
+        }
+    };
+}
+
 
 //
 // OSLMaterialFactory class implementation.
@@ -78,7 +165,7 @@ DictionaryArray OSLMaterialFactory::get_input_metadata() const
                     .insert("color", "Colors")
                     .insert("texture_instance", "Textures"))
             .insert("use", "optional"));
-    
+
     return metadata;
 }
 
@@ -88,7 +175,7 @@ auto_release_ptr<Material> OSLMaterialFactory::create(
 {
     return
         auto_release_ptr<Material>(
-            new Material(name, get_model(), params));
+            new OSLMaterial(name, params));
 }
 
 }   // namespace renderer

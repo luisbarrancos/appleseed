@@ -73,6 +73,7 @@ static const double RcpPi       = 0.3183098861837907;
 static const double RcpTwoPi    = 0.1591549430918953;
 static const double RcpHalfPi   = 0.6366197723675813;
 static const double RcpPiSq     = 0.1013211836423377;
+static const double SqrtTwo     = 1.4142135623730950;
 
 
 //
@@ -135,6 +136,10 @@ T int_log2(T x);
 // Return the factorial of a given integer.
 template <typename T>
 T factorial(T x);
+
+// Return the binomial coefficient (n, k).
+template <typename T>
+T binomial(const T n, const T k);
 
 // Return the log in a given base of a given scalar.
 template <typename T>
@@ -417,6 +422,14 @@ inline T factorial(T x)
     }
 
     return fac;
+}
+
+template <typename T>
+inline T binomial(const T n, const T k)
+{
+    assert(k <= n);
+
+    return factorial(n) / (factorial(k) * factorial(n - k));
 }
 
 template <typename T>

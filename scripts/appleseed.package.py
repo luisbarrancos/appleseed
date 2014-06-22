@@ -29,7 +29,7 @@
 #
 
 # Package builder settings.
-VersionString = "2.3.6"
+VersionString = "2.3.9"
 SettingsFileName = "appleseed.package.configuration.xml"
 
 # Imports.
@@ -48,6 +48,9 @@ import zipfile
 #--------------------------------------------------------------------------------------------------
 # Utility functions.
 #--------------------------------------------------------------------------------------------------
+
+def info(message):
+    print("  " + message)
 
 def progress(message):
     print("  " + message + "...")
@@ -195,7 +198,7 @@ class PackageBuilder:
     def retrieve_sandbox_from_git_repository(self):
         progress("Retrieving sandbox from Git repository")
         old_path = pushd(os.path.join(self.settings.appleseed_path, "sandbox"))
-        os.system("git archive --format=zip --output=" + os.path.join(old_path, "sandbox.zip") + " --worktree-attributes HEAD")
+        self.run("git archive --format=zip --output=" + os.path.join(old_path, "sandbox.zip") + " --worktree-attributes HEAD")
         os.chdir(old_path)
 
     def deploy_sandbox_to_stage(self):
@@ -264,6 +267,10 @@ class PackageBuilder:
     def remove_stage(self):
         safe_delete_directory("appleseed")
 
+    def run(self, cmdline):
+        info("Running command line: {0}".format(cmdline))
+        os.system(cmdline)
+
 
 #--------------------------------------------------------------------------------------------------
 # Windows package builder.
@@ -323,6 +330,9 @@ class MacPackageBuilder(PackageBuilder):
     def fixup_appleseed_studio(self):
         self.fixup_change("appleseed.studio", os.path.join(self.build_path, "appleseed/libappleseed.dylib"), "libappleseed.dylib")
         self.fixup_change("appleseed.studio", os.path.join(self.build_path, "appleseed.shared/libappleseed.shared.dylib"), "libappleseed.shared.dylib")
+        self.fixup_change("appleseed.studio", self.get_qt_framework_path("QtCore"), "QtCore.framework/Versions/4/QtCore")
+        self.fixup_change("appleseed.studio", self.get_qt_framework_path("QtGui"), "QtGui.framework/Versions/4/QtGui")
+        self.fixup_change("appleseed.studio", self.get_qt_framework_path("QtOpenGL"), "QtOpenGL.framework/Versions/4/QtOpenGL")
 
     def fixup_qt_frameworks(self):
         self.fixup_id("QtCore.framework/Versions/4/QtCore", "QtCore.framework/Versions/4/QtCore")
@@ -336,11 +346,10 @@ class MacPackageBuilder(PackageBuilder):
         self.fixup(target, '-id @"' + name + '"')
 
     def fixup_change(self, target, old, new):
-        progress("Mac-specific fixup: changing {0} to {1}".format(old, new))
         self.fixup(target, '-change "' + old + '" "' + new + '"')
 
     def fixup(self, target, args):
-        os.system("install_name_tool " + args + " " + os.path.join("appleseed/bin/", target))
+        self.run("install_name_tool " + args + " " + os.path.join("appleseed/bin/", target))
 
     def add_dependencies_to_stage(self):
         progress("Mac-specific: adding dependencies to staging directory")
@@ -354,6 +363,7 @@ class MacPackageBuilder(PackageBuilder):
         dest_path = os.path.join("appleseed", "bin", framework_name + ".framework", "Versions", "4")
         safe_make_directory(dest_path)
         shutil.copy(src_filepath, dest_path)
+        os.chmod(os.path.join(dest_path, framework_name), S_IRUSR | S_IWUSR)
 
     def copy_qt_resources(self, framework_name):
         framework_dir = framework_name + ".framework"
