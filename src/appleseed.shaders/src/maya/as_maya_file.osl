@@ -29,6 +29,7 @@
 // Ref: $MAYA_LOCATION/docs/Nodes/file.html
 
 #include "appleseed/maya/as_maya_helpers.h"
+#include "appleseed/texture/as_texture_helpers.h"
 
 shader as_maya_file
 [[
@@ -402,36 +403,72 @@ shader as_maya_file
             dsdt[1] = in_filterWidth * in_preFilterRadius;
         }
 
-        // When mode is mipmap and maximum res flag is on, use highest level
-        // mipmap always.
-        if (in_filterType == 1 && in_useMaximumRes)
+        // Use the texture atlas or straight lookups, see texture atlas
+        // in header for resp. options.
+        string style = "";
+
+        if (in_uvTilingMode)
         {
-            out_outColor =
-                texture(
-                    in_fileTextureName,
-                    st[0], st[1],
-                    dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
-                    "blur", in_filterOffset,
-                    "width", in_filter, // global scale for filter region
-                    "wrap", "periodic",
-                    "subimage", 0,
-                    "alpha", out_outAlpha,
-                    "interp", filter
-                    );
+            if (in_uvTilingMode)
+            {
+                style = "zbrush";
+            }
+            else if (in_uvTilingMode)
+            {
+                style = "mudbox";
+            }
+            else if (in_uvTilingMode)
+            {
+                style = "mari";
+            }
+            else if (in_uvTilingMode)
+            {
+                style = "explicit";
+            }
+            else
+            {
+#ifdef DEBUG
+                warning("[WARNING] invalid UV tiling mode set in %s:%i",
+                        __FILE__, __LINE__);
+#endif
+            }
         }
         else
         {
-            out_outColor =
-                texture(
-                    in_fileTextureName,
-                    st[0], st[1],
-                    dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
-                    "blur", in_filterOffset,
-                    "width", in_filter, // global scale for filter region
-                    "wrap", "periodic",
-                    "alpha", out_outAlpha,
-                    "interp", filter
-                    );
+            // When the filter is mipmap and the maximum res flag is set,
+            // use the highest level mipmap always.
+
+            if (in_filterType == 1 && in_useMaximumRes)
+            {
+                out_outColor =
+                    texture(
+                        in_fileTextureName,
+                        st[0], st[1],
+                        dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                        "blur", in_filterOffset,
+                        "width", in_filter, // global scale for filter region
+                        "wrap", "periodic",
+                        "subimage", 0,
+                        "missingcolor", in_defaultColor,
+                        "missingalpha", 1,
+                        "alpha", out_outAlpha,
+                        "interp", filter);
+            }
+            else
+            {
+                out_outColor =
+                    texture(
+                        in_fileTextureName,
+                        st[0], st[1],
+                        dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                        "blur", in_filterOffset,
+                        "width", in_filter, // global scale for filter region
+                        "wrap", "periodic",
+                        "missingcolor", in_defaultColor,
+                        "missingalpha", 1,
+                        "alpha", out_outAlpha,
+                        "interp", filter);
+            }
         }
     }
 
