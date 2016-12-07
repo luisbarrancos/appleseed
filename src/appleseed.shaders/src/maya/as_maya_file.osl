@@ -336,22 +336,21 @@ shader as_maya_file
             isconnected(in_uvCoord[1]) ? in_uvCoord[1] : v
         };
 
-        // Filter widths computed upstream, get them and set filter widths,
-        // compute fallbacks if no connections found, or disable if filter
-        // type is Off in Maya.
-
-        float dsdt[2];
         string filter = "";
+        float dsdt[4];
 
         if (in_filterType)
         {
-            dsdt[0] = isconnected(in_uvFilterSize[0])
-                ? in_uvFilterSize[0]
-                : filterwidth(st[0]);
+            // Filter widths computed upstream, and in RSL one would want to
+            // define the quadrilateral of the filter region with its 4 pair
+            // of coords, but in OSL, the texture() call expects the
+            // derivatives of s and of t, along the x and y directions, not
+            // the quadrilateral, so we cannot (re)use in_uvFilterSize[]
 
-            dsdt[1] = isconnected(in_uvFilterSize[1])
-                ? in_uvFilterSize[1]
-                : filterwidth(st[1]);
+            dsdt[0] = Dx(st[0]);
+            dsdt[1] = Dx(st[1]);
+            dsdt[2] = Dy(st[0]);
+            dsdt[3] = Dy(st[1]);
 
             // TODO: try and match OSL filter choices with Maya choices.
             // Maya: Off|Mipmap|Box|Quadratic|Quartic|Gaussian
@@ -389,6 +388,9 @@ shader as_maya_file
         {
             dsdt[0] = 0;
             dsdt[1] = 0;
+            dsdt[2] = 0;
+            dsdt[3] = 0;
+            
             filter = "closest";
         }
 
@@ -399,16 +401,14 @@ shader as_maya_file
 
         if (in_preFilter)
         {
-            dsdt[0] = in_filterWidth * in_preFilterRadius;
-            dsdt[1] = in_filterWidth * in_preFilterRadius;
+            float fw = in_filterWidth * in_preFilterRadius;
+
+            dsdt[0] = fw;
+            dsdt[1] = fw;
+            dsdt[2] = fw;
+            dsdt[3] = fw;
         }
-
-        float filter_quad[4] =
-        {
-            in_uvCoord[0] - dsdt[0], in_uvCoord[0] + dsdt[0],
-            in_uvCoord[1] - dsdt[1], in_uvCoord[1] + dsdt[1]
-        };
-
+        
         // Use the texture atlas or straight lookups, see texture atlas
         // in header for resp. options.
         string udim_style = "";
@@ -438,14 +438,13 @@ shader as_maya_file
                         __FILE__, __LINE__);
 #endif
             }
-            float zomg[4] = {0};
 
             out_outColor =
                 textureatlas(
                     in_fileTextureName,
                     udim_style,
                     st,
-                    filter_quad,
+                    dsdt,
                     in_filterOffset,
                     in_filter,
                     in_defaultColor,
@@ -464,8 +463,7 @@ shader as_maya_file
                     texture(
                         in_fileTextureName,
                         st[0], st[1],
-                        filter_quad[0], filter_quad[1],
-                        filter_quad[2], filter_quad[3],
+                        dsdt[0], dsdt[1], dsdt[2], dsdt[3],
                         "blur", in_filterOffset,
                         "width", in_filter, // global scale for filter region
                         "wrap", "periodic",
@@ -481,8 +479,7 @@ shader as_maya_file
                     texture(
                         in_fileTextureName,
                         st[0], st[1],
-                        filter_quad[0], filter_quad[1],
-                        filter_quad[2], filter_quad[3],
+                        dsdt[0], dsdt[1], dsdt[2], dsdt[3],
                         "blur", in_filterOffset,
                         "width", in_filter, // global scale for filter region
                         "wrap", "periodic",
