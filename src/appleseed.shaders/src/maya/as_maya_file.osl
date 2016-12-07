@@ -98,7 +98,11 @@ shader as_maya_file
     [[
         string maya_attribute_name = "preFilterRadius",
         string maya_attribute_type = "float",
-        string label = "Pre-Filter Radius"
+        string label = "Pre-Filter Radius",
+        int slider = 1,
+        int slidermin = 1,
+        int slidermax = 10,
+        int digits = 4
     ]],
     int in_useMaximumRes = 0
     [[
@@ -236,9 +240,21 @@ shader as_maya_file
     ]]
 )
 {
-
     if (in_disableFileLoad || in_fileTextureName == "")
     {
+        out_outColor = in_defaultColor;
+
+        maya_colorBalance(
+            in_colorGain,
+            in_colorOffset,
+            in_defaultColor,
+            in_alphaGain,
+            in_alphaOffset,
+            in_invert,
+            in_alphaIsLuminance,
+            out_outColor,
+            out_outAlpha);
+
         exit();
     }
 
@@ -311,6 +327,129 @@ shader as_maya_file
         out_outSize[0] = size[0];
         out_outSize[1] = size[1];
         out_fileHasAlpha = (channels > 3) ? 1 : 0;
+
+        // Without explicit place2d connections, Maya reverts to ST.
+        float st[2] =
+        {
+            isconnected(in_uvCoord[0]) ? in_uvCoord[0] : u,
+            isconnected(in_uvCoord[1]) ? in_uvCoord[1] : v
+        };
+
+        // Filter widths computed upstream, get them and set filter widths,
+        // compute fallbacks if no connections found, or disable if filter
+        // type is Off in Maya.
+
+        float dsdt[2];
+        string filter = "";
+
+        if (in_filterType)
+        {
+            dsdt[0] = isconnected(in_uvFilterSize[0])
+                ? in_uvFilterSize[0]
+                : filterwidth(st[0]);
+
+            dsdt[1] = isconnected(in_uvFilterSize[1])
+                ? in_uvFilterSize[1]
+                : filterwidth(st[1]);
+
+            // TODO: try and match OSL filter choices with Maya choices.
+            // Maya: Off|Mipmap|Box|Quadratic|Quartic|Gaussian
+            // OSL:  closest|linear|cubic|smartcubic
+            // According to maya docs, quadratic, quartic, gaussian are all
+            // bell curves.
+            // TODO: untested filter choices, starting point only.
+
+            if (in_filterType == 1)
+            {
+                filter = "linear";
+            }
+            else if (in_filterType == 2)
+            {
+                filter = "closest";
+            }
+            else if (in_filterType == 3)
+            {
+                filter = "cubic";
+            }
+            else if (in_filterType == 4)
+            {
+                filter = "smartcubic";
+            }
+            else if (in_filterType == 5)
+            {
+                filter = "smartcubic";
+            }
+            else
+            {
+                filter = "closest";
+            }
+        }
+        else
+        {
+            dsdt[0] = 0;
+            dsdt[1] = 0;
+            filter = "closest";
+        }
+
+        // Disabled filtering and filter widths defaults can still be
+        // overriden by filter radius.
+        // TODO: try and match choice of filters and widths. Use as default
+        // the in_filterWidth(.707) value and proceed from here.
+
+        if (in_preFilter)
+        {
+            dsdt[0] = in_filterWidth * in_preFilterRadius;
+            dsdt[1] = in_filterWidth * in_preFilterRadius;
+        }
+
+        // When mode is mipmap and maximum res flag is on, use highest level
+        // mipmap always.
+        if (in_filterType == 1 && in_useMaximumRes)
+        {
+            out_outColor =
+                texture(
+                    in_fileTextureName,
+                    st[0], st[1],
+                    dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                    "blur", in_filterOffset,
+                    "width", in_filter, // global scale for filter region
+                    "wrap", "periodic",
+                    "subimage", 0,
+                    "alpha", out_outAlpha,
+                    "interp", filter
+                    );
+        }
+        else
+        {
+            out_outColor =
+                texture(
+                    in_fileTextureName,
+                    st[0], st[1],
+                    dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                    "blur", in_filterOffset,
+                    "width", in_filter, // global scale for filter region
+                    "wrap", "periodic",
+                    "alpha", out_outAlpha,
+                    "interp", filter
+                    );
+        }
     }
+
+    if (in_exposure)
+    {
+        out_outColor *= pow(2, in_exposure);
+    }
+
+    maya_colorBalance(
+        in_colorGain,
+        in_colorOffset,
+        in_defaultColor,
+        in_alphaGain,
+        in_alphaOffset,
+        in_invert,
+        in_alphaIsLuminance,
+        out_outColor,
+        out_outAlpha
+        );
 }
 
