@@ -33,6 +33,7 @@
 
 #define NUM_UDIM_NAMES  10
 #define NUM_UDIM_ROWS   10
+#define UDIM_SIZE       100
 
 #define DEBUG_CONSTANT_FOLDING(NAMES,J,K)                           \
     string shadername = "";                                         \
@@ -47,7 +48,7 @@
 void udim_mari_filenames(
     string filename,
     string extension,
-    output string names[NUM_UDIM_NAMES * NUM_UDIM_ROWS])
+    output string names[UDIM_SIZE])
 {
     for (int i = 0; i < NUM_UDIM_ROWS; ++i)
     {
@@ -65,7 +66,7 @@ void udim_mari_filenames(
 void udim_filenames(
     string filename,
     string extension,
-    output string names[NUM_UDIM_NAMES * NUM_UDIM_ROWS])
+    output string names[UDIM_SIZE])
 {
     for (int i = 0; i < NUM_UDIM_ROWS; ++i)
     {
@@ -82,9 +83,9 @@ void udim_filenames(
 
 color textureatlas(
     string filename,
+    string extension,
     string style,
-    float s,
-    float t,
+    float st[2],
     float blur,
     float width,
     int firstchannel,
@@ -95,11 +96,11 @@ color textureatlas(
     output float alpha
     )
 {
-    string filenames[NUM_UDIM_NAMES * NUM_UDIM_ROWS] = {""};
+    string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
-    int u_tile = int(s);
-    int v_tile = int(t);
+    int u_tile = int(st[0]);
+    int v_tile = int(st[1]);
     int ndx;
 
     if (style == "zbrush" || style == "mudbox")
@@ -110,7 +111,7 @@ color textureatlas(
         }
         else if (style == "mudbox")
         {
-            ndx = 10 * (v_tile + 1) + (u_map + 1);
+            ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
         udim_filenames(filename, extension, filenames);
         lookup = filenames[ndx];
@@ -139,8 +140,87 @@ color textureatlas(
     {
         return (color) texture(
             lookup,
-            s - u_tile,
-            1 - (t - v_tile),
+            st[0] - u_tile,
+            1 - (st[1] - v_tile),
+            "blur", blur,
+            "width", width,
+            "firstchannel", firstchannel,
+            "fill", fill,
+            "missingcolor", missingcolor,
+            "missingalpha", missingalpha,
+            "alpha", alpha,
+            "interp", filter
+            );
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+color textureatlas(
+    string filename,
+    string extension,
+    string style,
+    float st[2],
+    float dsdt[4],
+    float blur,
+    float width,
+    int firstchannel,
+    float fill,
+    color missingcolor,
+    float missingalpha,
+    string filter,
+    output float alpha
+    )
+{
+    string filenames[UDIM_SIZE] = {""};
+    string lookup = "";
+
+    int u_tile = int(st[0]);
+    int v_tile = int(st[1]);
+    int ndx;
+
+    if (style == "zbrush" || style == "mudbox")
+    {
+        if (style == "zbrush")
+        {
+            ndx = 10 * v_tile + u_tile;
+        }
+        else if (style == "mudbox")
+        {
+            ndx = 10 * (v_tile + 1) + (u_tile + 1);
+        }
+        udim_filenames(filename, extension, filenames);
+        lookup = filenames[ndx];
+    }
+    else if (style == "mudbox")
+    {
+        ndx = 10 * v_tile + u_tile;
+        udim_mari_filenames(filename, extension, filenames);
+        lookup = filenames[ndx];
+    }
+    else if (style == "explicit")
+    {
+        ; //
+    }
+    else
+    {
+#ifdef DEBUG
+        string shadername = "";
+        getattribute("shader:shadername", shadername);
+        warning("[WARNING]:no valid UDIM style set in %s, %s:%i\n",
+                shadername, __FILE__, __LINE__);
+#endif
+    }
+
+    if (lookup != "")
+    {
+        return (color) texture(
+            lookup,
+            st[0] - u_tile,
+            1 - (st[1] - v_tile),
+            dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
             "blur", blur,
             "width", width,
             "firstchannel", firstchannel,
@@ -159,20 +239,21 @@ color textureatlas(
 
 float textureatlas(
     string filename,
+    string extension,
     string style,
-    float s,
-    float t,
+    float st[2],
     float blur,
     float width,
+    float fill,
     int firstchannel,
     string filter
     )
 {
-    string filenames[NUM_UDIM_NAMES * NUM_UDIM_ROWS] = {""};
+    string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
-    int u_tile = int(s);
-    int v_tile = int(t);
+    int u_tile = int(st[0]);
+    int v_tile = int(st[1]);
     int ndx;
 
     if (style == "zbrush" || style == "mudbox")
@@ -183,7 +264,7 @@ float textureatlas(
         }
         else if (style == "mudbox")
         {
-            ndx = 10 * (v_tile + 1) + (u_map + 1);
+            ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
         udim_filenames(filename, extension, filenames);
         lookup = filenames[ndx];
@@ -212,8 +293,81 @@ float textureatlas(
     {
         return (float) texture(
             lookup,
-            s - u_tile,
-            1 - (t - v_tile),
+            st[0] - u_tile,
+            1 - (st[1] - v_tile),
+            "blur", blur,
+            "width", width,
+            "firstchannel", firstchannel,
+            "fill", fill,
+            "interp", filter
+            );
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+float textureatlas(
+    string filename,
+    string extension,
+    string style,
+    float st[2],
+    float dsdt[4],
+    float blur,
+    float width,
+    float fill,
+    int firstchannel,
+    string filter
+    )
+{
+    string filenames[UDIM_SIZE] = {""};
+    string lookup = "";
+
+    int u_tile = int(st[0]);
+    int v_tile = int(st[1]);
+    int ndx;
+
+    if (style == "zbrush" || style == "mudbox")
+    {
+        if (style == "zbrush")
+        {
+            ndx = 10 * v_tile + u_tile;
+        }
+        else if (style == "mudbox")
+        {
+            ndx = 10 * (v_tile + 1) + (u_tile + 1);
+        }
+        udim_filenames(filename, extension, filenames);
+        lookup = filenames[ndx];
+    }
+    else if (style == "mudbox")
+    {
+        ndx = 10 * v_tile + u_tile;
+        udim_mari_filenames(filename, extension, filenames);
+        lookup = filenames[ndx];
+    }
+    else if (style == "explicit")
+    {
+        ; //
+    }
+    else
+    {
+#ifdef DEBUG
+        string shadername = "";
+        getattribute("shader:shadername", shadername);
+        warning("[WARNING]:no valid UDIM style set in %s, %s:%i\n",
+                shadername, __FILE__, __LINE__);
+#endif
+    }
+
+    if (lookup != "")
+    {
+        return (float) texture(
+            lookup,
+            st[0] - u_tile,
+            1 - (st[1] - v_tile),
+            dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
             "blur", blur,
             "width", width,
             "firstchannel", firstchannel,
