@@ -403,27 +403,33 @@ shader as_maya_file
             dsdt[1] = in_filterWidth * in_preFilterRadius;
         }
 
+        float filter_quad[4] =
+        {
+            in_uvCoord[0] - dsdt[0], in_uvCoord[0] + dsdt[0],
+            in_uvCoord[1] - dsdt[1], in_uvCoord[1] + dsdt[1]
+        };
+
         // Use the texture atlas or straight lookups, see texture atlas
         // in header for resp. options.
-        string style = "";
+        string udim_style = "";
 
         if (in_uvTilingMode)
         {
             if (in_uvTilingMode)
             {
-                style = "zbrush";
+                udim_style = "zbrush";
             }
             else if (in_uvTilingMode)
             {
-                style = "mudbox";
+                udim_style = "mudbox";
             }
             else if (in_uvTilingMode)
             {
-                style = "mari";
+                udim_style = "mari";
             }
             else if (in_uvTilingMode)
             {
-                style = "explicit";
+                udim_style = "explicit";
             }
             else
             {
@@ -432,6 +438,20 @@ shader as_maya_file
                         __FILE__, __LINE__);
 #endif
             }
+            float zomg[4] = {0};
+
+            out_outColor =
+                textureatlas(
+                    in_fileTextureName,
+                    udim_style,
+                    st,
+                    filter_quad,
+                    in_filterOffset,
+                    in_filter,
+                    in_defaultColor,
+                    1.0, // missing alpha
+                    filter,
+                    out_outAlpha);
         }
         else
         {
@@ -444,7 +464,8 @@ shader as_maya_file
                     texture(
                         in_fileTextureName,
                         st[0], st[1],
-                        dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                        filter_quad[0], filter_quad[1],
+                        filter_quad[2], filter_quad[3],
                         "blur", in_filterOffset,
                         "width", in_filter, // global scale for filter region
                         "wrap", "periodic",
@@ -460,7 +481,8 @@ shader as_maya_file
                     texture(
                         in_fileTextureName,
                         st[0], st[1],
-                        dsdt[0], dsdt[1], dsdt[2], dsdt[3], // filter region
+                        filter_quad[0], filter_quad[1],
+                        filter_quad[2], filter_quad[3],
                         "blur", in_filterOffset,
                         "width", in_filter, // global scale for filter region
                         "wrap", "periodic",
