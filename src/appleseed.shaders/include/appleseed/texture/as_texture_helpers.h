@@ -83,7 +83,6 @@ void udim_filenames(
 
 color textureatlas(
     string filename,
-    string extension,
     string style,
     float st[2],
     float blur,
@@ -96,6 +95,18 @@ color textureatlas(
     output float alpha
     )
 {
+    // Assume last 4 character are extension (.ext), split basename+ext.
+    int len = strlen(filename);
+    string extension = substr(filename, -4);
+    string basename = substr(filename, 0, len-4);
+
+#ifdef DEBUG
+    warning("strlen constant = %i\nextension = %i\nbase = %i\n",
+            isconstant(len),
+            isconstant(extension),
+            isconstant(basename));
+#endif
+
     string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
@@ -113,13 +124,13 @@ color textureatlas(
         {
             ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
-        udim_filenames(filename, extension, filenames);
+        udim_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "mudbox")
     {
         ndx = 10 * v_tile + u_tile;
-        udim_mari_filenames(filename, extension, filenames);
+        udim_mari_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "explicit")
@@ -160,7 +171,6 @@ color textureatlas(
 
 color textureatlas(
     string filename,
-    string extension,
     string style,
     float st[2],
     float dsdt[4],
@@ -174,6 +184,11 @@ color textureatlas(
     output float alpha
     )
 {
+    // Assume last 4 character are extension (.ext), split basename+ext.
+    int len = strlen(filename);
+    string extension = substr(filename, -4);
+    string basename = substr(filename, 0, len-4);  
+
     string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
@@ -191,13 +206,13 @@ color textureatlas(
         {
             ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
-        udim_filenames(filename, extension, filenames);
+        udim_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "mudbox")
     {
         ndx = 10 * v_tile + u_tile;
-        udim_mari_filenames(filename, extension, filenames);
+        udim_mari_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "explicit")
@@ -239,7 +254,6 @@ color textureatlas(
 
 float textureatlas(
     string filename,
-    string extension,
     string style,
     float st[2],
     float blur,
@@ -249,6 +263,11 @@ float textureatlas(
     string filter
     )
 {
+    // Assume last 4 character are extension (.ext), split basename+ext.
+    int len = strlen(filename);
+    string extension = substr(filename, -4);
+    string basename = substr(filename, 0, len-4);  
+
     string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
@@ -266,13 +285,13 @@ float textureatlas(
         {
             ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
-        udim_filenames(filename, extension, filenames);
+        udim_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "mudbox")
     {
         ndx = 10 * v_tile + u_tile;
-        udim_mari_filenames(filename, extension, filenames);
+        udim_mari_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "explicit")
@@ -310,7 +329,6 @@ float textureatlas(
 
 float textureatlas(
     string filename,
-    string extension,
     string style,
     float st[2],
     float dsdt[4],
@@ -321,6 +339,11 @@ float textureatlas(
     string filter
     )
 {
+    // Assume last 4 character are extension (.ext), split basename+ext.
+    int len = strlen(filename);
+    string extension = substr(filename, -4);
+    string basename = substr(filename, 0, len-4);  
+
     string filenames[UDIM_SIZE] = {""};
     string lookup = "";
 
@@ -338,13 +361,13 @@ float textureatlas(
         {
             ndx = 10 * (v_tile + 1) + (u_tile + 1);
         }
-        udim_filenames(filename, extension, filenames);
+        udim_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "mudbox")
     {
         ndx = 10 * v_tile + u_tile;
-        udim_mari_filenames(filename, extension, filenames);
+        udim_mari_filenames(basename, extension, filenames);
         lookup = filenames[ndx];
     }
     else if (style == "explicit")
