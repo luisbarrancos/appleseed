@@ -5,7 +5,7 @@
 //
 // This software is released under the MIT license.
 //
-// Copyright (c) 2016 Ramon Blanquer, The appleseedhq Organization
+// Copyright (c) 2014-2016 The masked shader writer, The appleseedhq Organization
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,26 +26,11 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_RENDERER_MODELING_OBJECT_MESHOBJECTPRIMITIVES_H
-#define APPLESEED_RENDERER_MODELING_OBJECT_MESHOBJECTPRIMITIVES_H
-
-// appleseed.foundation headers.
-#include "foundation/utility/autoreleaseptr.h"
-
-// appleseed.main headers.
-#include "main/dllsymbol.h"
-
-// Forward declarations.
-namespace renderer  { class MeshObject; }
-namespace renderer  { class ParamArray; }
-
-namespace renderer
+shader as_float2_split
+(
+    float        Float2[2] = {0, 0},
+    output float U = Float2[0],
+    output float V = Float2[1]
+)
 {
-
-APPLESEED_DLLSYMBOL foundation::auto_release_ptr<MeshObject> create_primitive_mesh(
-    const char*         name,
-    const ParamArray&   params);
-
-}       // namespace renderer
-
-#endif  // !APPLESEED_RENDERER_MODELING_OBJECT_MESHOBJECTPRIMITIVES_H
+}
