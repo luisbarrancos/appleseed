@@ -47,5 +47,11 @@ float microfacet_roughness(float roughness, float depth_scale)
     return out;
 }
 
-#endif // AS_MATERIAL_HELPERS_H
+float ior_from_normal_reflectance(float f0)
+{
+    float sqrt_f0 = sqrt(f0);
 
+    return (sqrt_f0 + 1) / (1 - sqrt_f0);
+}
+
+#endif // AS_MATERIAL_HELPERS_H
