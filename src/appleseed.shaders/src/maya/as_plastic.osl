@@ -1,0 +1,259 @@
+
+//
+// This source file is part of appleseed.
+// Visit http://appleseedhq.net/ for additional information and resources.
+//
+// This software is released under the MIT license.
+//
+// Copyright (c) 2016 Luis Barrancos, The appleseedhq Organization
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+// 
+
+#include "appleseed/material/as_material_helpers.h"
+
+shader as_plastic
+[[
+    string maya_node_name = "plastic",
+    string maya_classification = "shader/surface"
+]]
+(
+    normal in_normalCamera = N
+    [[
+        string maya_attribute_name = "normalCamera",
+        string maya_attribute_type = "vector",
+        string label = "Bump Normal",
+        string page = "Bump Mapping"
+    ]],
+    color in_surfaceColor = color(0, 0.26, 0.7)
+    [[
+        string maya_attribute_name = "surfaceColor",
+        string maya_attribute_type = "vector",
+        string label = "Surface Color",
+        string page = "Common Material Attributes"
+    ]],
+    color in_radius = 1.0
+    [[
+        string maya_attribute_name = "radius",
+        string maya_attribute_type = "vector",
+        string label = "SSS Radius",
+        string units = "cm",
+        string page = "Common Material Attributes"
+    ]],
+    float in_radiusScale = 0.1
+    [[
+        string maya_attribute_name = "radiusScale",
+        string maya_attribute_type = "float",
+        string label = "SSS Radius Scale",
+        string widget = "slider",
+        float min = 0.001,
+        float max = 100.0,
+        float slidermin = 0.001,
+        float slidermax = 100.0,
+        int digits = 5,
+        string page = "Common Material Attributes"
+    ]],
+    string in_profile = "better_dipole"
+    [[
+        string maya_attribute_name = "profile",
+        string maya_attribute_type = "enum",
+        string label = "Subsurface Profile",
+        string widget = "popup",
+        string options = "normalized_diffusion|standard_dipole|better_dipole|directional_dipole",
+        string page = "Common Material Attributes"
+    ]],
+    int in_sssRayDepth = 2
+    [[
+        string maya_attribute_name = "sssRayDepth",
+        string maya_attribute_type = "int",
+        string label = "Maximum SSS Ray Depth",
+        string widget = "slider",
+        int min = 0,
+        int max = 10,
+        int slidermin = 0,
+        int slidermax = 10,
+        string page = "Common Material Attributes"
+    ]],
+    float in_reflectance = 0.1
+    [[
+        string maya_attribute_name = "reflectance",
+        string maya_attribute_type = "float",
+        string label = "Surface Reflectance",
+        string widget = "slider",
+        float min = 0.0,
+        float max = 1.0,
+        float slidermin = 0.0,
+        float slidermax = 1.0,
+        float slidercenter = 0.1,
+        float sliderexponent = 2,
+        int digits = 5,
+        string help = "Reflectance at normal incidence, used to derive the index of refraction for the subsurface and the specular terms.",
+        string page = "Common Material Attributes"
+    ]],
+    float in_specularRoughness = 0.2
+    [[
+        string maya_attribute_name = "specularRoughness",
+        string maya_attribute_type = "float",
+        string label = "Specular Roughness",
+        string widget = "slider",
+        float min = 0.0,
+        float max = 1.0,
+        float slidermin = 0.0,
+        float slidermax = 1.0,
+        float slidercenter = 0.1,
+        float sliderexponent = 2.0,
+        int digits = 5,
+        string page = "Common Material Attributes"
+    ]],
+    float in_specularRoughnessDepthScale = 1.0
+    [[
+        string maya_attribute_name = "specularRoughnessDepthScale",
+        string maya_attribute_type = "float",
+        string label = "Specular Roughness Depth Scale",
+        float min = 1.0,
+        float max = 10.0,
+        float slidermin = 1.0,
+        float slidermax = 10.0,
+        int digits = 5,
+        string page = "Common Material Attributes"
+    ]],
+    int in_specularRayDepth = 4
+    [[
+        string maya_attribute_name = "specularRayDepth",
+        string maya_attribute_type = "int",
+        string label = "Maximum Specular Ray Depth",
+        string widget = "slider",
+        int min = 0,
+        int max = 10,
+        int slidermin = 0,
+        int slidermax = 10,
+        string page = "Common Material Attributes"
+    ]], 
+    color in_transparencyColor = color(0)
+    [[
+        string maya_attribute_name = "transparencyColor",
+        string maya_attribute_type = "vector",
+        string label = "Transparency Color",
+        string page = "Transparency"
+    ]],
+    float in_matteOpacity = 1.0
+    [[
+        string maya_attribute_name = "matteOpacity",
+        string maya_attribute_type = "float",
+        string label = "Matte Opacity",
+        string page = "Matte Opacity"
+    ]],
+
+    output closure color out_outColor = 0
+    [[
+        string maya_attribute_name = "outColor",
+        string maya_attribute_type = "vector",
+        string label = "Output Color",
+        string widget = "null"
+    ]],
+    output closure color out_outTransparency = 0
+    [[
+        string maya_attribute_name = "outTransparency",
+        string maya_attribute_type = "vector",
+        string label = "Output Transparency",
+        string widget = "null"
+    ]],
+    output closure color out_outMatteOpacity = 0
+    [[
+        string maya_attribute_name = "outMatteOpacity",
+        string maya_attribute_type = "vector",
+        string label = "Output Matte Opacity",
+        string widget = "null"
+    ]]
+)
+{
+    if (raytype("shadow"))
+    {
+        out_outColor = in_transparencyColor * transparent();
+        out_outTransparency = out_outColor;
+    }
+    else
+    {
+        closure color subsurface_term = 0;
+        closure color specular_term = 0;
+        closure color holdout_term = 0;
+
+        if (in_surfaceColor || in_reflectance)
+        {
+            normal Nn = normalize(in_normalCamera);
+
+            color opacity = 1 - in_transparencyColor;
+
+            float ior = (backfacing())
+                ? ior_from_normal_reflectance(in_reflectance)
+                : 1 / ior_from_normal_reflectance(in_reflectance);
+
+            if (in_surfaceColor)
+            {
+                int ray_depth = 0;
+
+                getattribute("path:ray_depth", ray_depth);
+
+                if (ray_depth <= in_sssRayDepth)
+                {
+                    subsurface_term = opacity * as_subsurface(
+                        in_profile,
+                        in_normalCamera,
+                        in_surfaceColor,
+                        in_radius * in_radiusScale,
+                        ior);
+                }
+                else
+                {
+                    float Kr, Kt;
+                    fresnel(normalize(I), Nn, ior, Kr, Kt);
+
+                    subsurface_term = opacity * (1 - Kr) *
+                        oren_nayar(Nn, in_specularRoughness);
+                }
+            }
+
+            if (in_reflectance)
+            {
+                int ray_depth = 0;
+
+                getattribute("path:ray_depth", ray_depth);
+
+                if (ray_depth <= in_specularRayDepth)
+                {
+                    specular_term = opacity * as_glossy(
+                        "ggx",
+                        Nn,
+                        microfacet_roughness(
+                            in_specularRoughness,
+                            in_specularRoughnessDepthScale),
+                        ior);
+                }
+            }
+        }
+
+        holdout_term = in_matteOpacity * holdout();
+
+        out_outTransparency = in_transparencyColor * transparent();
+
+        out_outColor = subsurface_term + specular_term + holdout_term +
+            out_outTransparency;
+    }
+}
+
