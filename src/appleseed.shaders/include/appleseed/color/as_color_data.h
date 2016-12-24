@@ -144,4 +144,21 @@
     vector(XYZ2RGB_D65_SRGB_R2)             \
     }
 
+// Some presets for color temperature, to be used in blackbody()
+#define K_LP_SODIUM             1700
+#define K_CANDLE                1850
+#define K_INCANDESCENT          2400
+#define K_SOFT_INCANDESCENT     2550
+#define K_FLUORESCENT           2700
+#define K_WARM_FLUORESCENT      3000
+#define K_STUDIO                3200
+#define K_STUDIO_CP             3350
+#define K_MOONLIGHT             4100
+#define K_CFL_HORIZON           5000
+#define K_FLASH                 5500
+#define K_XENON_ARC             6200
+#define K_DAYLIGHT              6500
+#define K_COOL_LCD_CRT          7500
+#define K_CLEAR_BLUE_SKY       18000
+
 #endif /// AS_COLOR_DATA_H

@@ -1,0 +1,174 @@
+
+//
+// This source file is part of appleseed.
+// Visit http://appleseedhq.net/ for additional information and resources.
+//
+// This software is released under the MIT license.
+//
+// Copyright (c) 2016 Luis Barrancos, The appleseedhq Organization
+// Copyright (c) 2016 Esteban Tovagliari, The appleseedhq Organization
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+#include "appleseed/color/as_color_data.h"
+
+surface as_areaLight
+[[
+    string maya_node_name = "as_areaLight",
+    string maya_classification = "light",
+    int maya_type_id = 0x001279c4
+]]
+(
+    color in_color = color(1)
+    [[
+        string maya_attribute_name = "color",
+        string maya_attribute_type = "vector",
+        string label = "Color",
+        string page = "Area Light Attributes"
+    ]],
+    float in_intensity = 1.0
+    [[
+        string maya_attribute_name = "intensity",
+        string maya_attribute_type = "float",
+        string label = "intensity",
+        string page = "Area Light Attributes"
+    ]],
+    int in_single_sided = 1
+    [[
+        string maya_attribute_name = "single_sided",
+        string maya_attribute_type = "bool",
+        string label = "Single Sided",
+        string widget = "checkBox",
+        string page = "Area Light Attributes"
+    ]],
+    int in_normalize_area = 0
+    [[
+        string maya_attribute_name = "normalize_area",
+        string maya_attribute_type = "bool",
+        string label = "Normalize Area",
+        string widget = "checkBox",
+        string page = "Area Light Attributes"
+    ]],
+    float in_exposure = 0.0
+    [[
+        string maya_attribute_name = "exposure",
+        string maya_attribute_type = "float",
+        string label = "Exposure",
+        string widget = "slider",
+        float min = 0.0,
+        float max = 22.0,
+        float slidermin = 0.0,
+        float slidermax = 8.0,
+        string page = "Area Light Attributes"
+    ]],
+    int in_temperature_preset = 0
+    [[
+        string maya_attribute_name = "temperature_preset",
+        string maya_attribute_type = "enum",
+        string label = "Temperature Presets",
+        string widget = "mapper",
+        string options = "None:0|Low Pressure Sodium Lamps:1|Candle Flame, Sunset or Sunrise:2|Standard Incandescent Lamps:3|Soft White Incandescent Lamps:4|Soft White Fluorescent Lamps:5|Warm White Fluorescent Lamps:6|Studio Lamps:7|Studio CP Light:8|Moonlight:9|Horizon Daylight, CFL or Cool Daylight:10|Electronic Flash:11|Xenon Arc Lamp:12|Daylight Overcast:13|LCD or CRT Screen:14|Clear Blue Sky:15",
+        string page = "Color Temperature"
+    ]],
+    int in_temperature_kelvin = 0
+    [[
+        string maya_attribute_name = "temperature_kelvin",
+        string maya_attribute_type = "int",
+        string label = "Temperature in Kelvin Degrees",
+        string widget = "intslider",
+        int min = 0,
+        int max = 27000,
+        int slidermin = 0,
+        int slidermax = 15000,
+        int slidercenter = 6504,
+        int sliderexponent = 2,
+        string page = "Color Temperature"
+    ]],
+    float in_temperature_weight = 1.0
+    [[
+        string maya_attribute_name = "temperature_weight",
+        string maya_attribute_type = "float",
+        string label = "Temperature Weight",
+        float min = 0.0,
+        float max = 1.0,
+        float slidermin = 0.0,
+        float slidermax = 1.0,
+        string page = "Color Temperature"
+    ]],
+    int in_normalize_temperature = 0
+    [[
+        string maya_attribute_name = "normalize_temperature",
+        string maya_attribute_type = "enum",
+        string label = "Normalize Temperature",
+        string widget = "mapper",
+        string options = "None:0|Normalize to [0,1]:1|Tone Map:2",
+        string page = "Color Temperature"
+    ]]
+)
+{
+    if (in_single_sided && backfacing())
+    {
+        return;
+    }
+
+    color light_color = in_intensity * in_color;
+
+    if (in_temperature_preset || in_temperature_kelvin)
+    {
+        int temp_presets[16] = {
+            K_LP_SODIUM, K_CANDLE, K_INCANDESCENT, K_SOFT_INCANDESCENT,
+            K_FLUORESCENT, K_WARM_FLUORESCENT, K_STUDIO, K_STUDIO_CP,
+            K_MOONLIGHT, K_CFL_HORIZON, K_FLASH, K_XENON_ARC,
+            K_DAYLIGHT, K_COOL_LCD_CRT, K_CLEAR_BLUE_SKY};
+
+        int temperature = (in_temperature_preset)
+            ? temp_presets[clamp(in_temperature_preset, 0, 15)]
+            : in_temperature_kelvin;
+
+        color blackbody_color = blackbody(in_temperature_weight * temperature);
+
+        if (in_normalize_temperature == 1)
+        {
+            color C_hsv = transformc("rgb", "hsv", blackbody_color);
+            
+            C_hsv[2] = (C_hsv[2] > 1) ? 1.0 : C_hsv[2];
+            
+            blackbody_color = transformc("hsv", "rgb", C_hsv);
+        }
+        else if (in_normalize_temperature == 2)
+        {
+            blackbody_color /= 1 + luminance(blackbody_color);
+        }
+
+        light_color *= blackbody_color;
+    }
+
+    if (in_exposure)
+    {
+        light_color *= pow(2, in_exposure);
+    }
+
+    if (in_normalize_area)
+    {
+        light_color /= surfacearea() * M_PI;
+    }
+
+    Ci = light_color * emission();
+}

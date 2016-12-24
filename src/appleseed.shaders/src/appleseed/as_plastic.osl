@@ -30,8 +30,9 @@
 
 shader as_plastic
 [[
-    string maya_node_name = "plastic",
-    string maya_classification = "shader/surface"
+    string maya_node_name = "as_plastic",
+    string maya_classification = "shader/surface",
+    int maya_type_id = 0x001279c3 
 ]]
 (
     normal in_normalCamera = N
@@ -256,4 +257,3 @@ shader as_plastic
             out_outTransparency;
     }
 }
-
