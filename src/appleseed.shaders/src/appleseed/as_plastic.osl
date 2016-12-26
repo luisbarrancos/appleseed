@@ -35,32 +35,23 @@ shader as_plastic
     int maya_type_id = 0x001279c3 
 ]]
 (
-    normal in_normalCamera = N
+    normal surface_normal = N
     [[
-        string maya_attribute_name = "normalCamera",
-        string maya_attribute_type = "vector",
         string label = "Bump Normal",
         string page = "Bump Mapping"
     ]],
-    color in_surfaceColor = color(0, 0.26, 0.7)
+    color surface_color = color(0, 0.26, 0.7)
     [[
-        string maya_attribute_name = "surfaceColor",
-        string maya_attribute_type = "vector",
         string label = "Surface Color",
         string page = "Common Material Attributes"
     ]],
-    color in_radius = 1.0
+    color sss_radius = 1.0
     [[
-        string maya_attribute_name = "radius",
-        string maya_attribute_type = "vector",
         string label = "SSS Radius",
-        string units = "cm",
         string page = "Common Material Attributes"
     ]],
-    float in_radiusScale = 0.1
+    float sss_radius_scale = 0.1
     [[
-        string maya_attribute_name = "radiusScale",
-        string maya_attribute_type = "float",
         string label = "SSS Radius Scale",
         string widget = "slider",
         float min = 0.001,
@@ -70,19 +61,15 @@ shader as_plastic
         int digits = 5,
         string page = "Common Material Attributes"
     ]],
-    string in_profile = "better_dipole"
+    string sss_profile = "better_dipole"
     [[
-        string maya_attribute_name = "profile",
-        string maya_attribute_type = "enum",
         string label = "Subsurface Profile",
         string widget = "popup",
         string options = "normalized_diffusion|standard_dipole|better_dipole|directional_dipole",
         string page = "Common Material Attributes"
     ]],
-    int in_sssRayDepth = 2
+    int sss_ray_depth = 2
     [[
-        string maya_attribute_name = "sssRayDepth",
-        string maya_attribute_type = "int",
         string label = "Maximum SSS Ray Depth",
         string widget = "slider",
         int min = 0,
@@ -91,10 +78,8 @@ shader as_plastic
         int slidermax = 10,
         string page = "Common Material Attributes"
     ]],
-    float in_reflectance = 0.1
+    float reflectance = 0.1
     [[
-        string maya_attribute_name = "reflectance",
-        string maya_attribute_type = "float",
         string label = "Surface Reflectance",
         string widget = "slider",
         float min = 0.0,
@@ -107,10 +92,8 @@ shader as_plastic
         string help = "Reflectance at normal incidence, used to derive the index of refraction for the subsurface and the specular terms.",
         string page = "Common Material Attributes"
     ]],
-    float in_specularRoughness = 0.2
+    float specular_roughness = 0.2
     [[
-        string maya_attribute_name = "specularRoughness",
-        string maya_attribute_type = "float",
         string label = "Specular Roughness",
         string widget = "slider",
         float min = 0.0,
@@ -122,10 +105,8 @@ shader as_plastic
         int digits = 5,
         string page = "Common Material Attributes"
     ]],
-    float in_specularRoughnessDepthScale = 1.0
+    float specular_roughness_depth_scale = 1.0
     [[
-        string maya_attribute_name = "specularRoughnessDepthScale",
-        string maya_attribute_type = "float",
         string label = "Specular Roughness Depth Scale",
         float min = 1.0,
         float max = 10.0,
@@ -134,10 +115,8 @@ shader as_plastic
         int digits = 5,
         string page = "Common Material Attributes"
     ]],
-    int in_specularRayDepth = 4
+    int specular_ray_depth = 4
     [[
-        string maya_attribute_name = "specularRayDepth",
-        string maya_attribute_type = "int",
         string label = "Maximum Specular Ray Depth",
         string widget = "slider",
         int min = 0,
@@ -146,48 +125,38 @@ shader as_plastic
         int slidermax = 10,
         string page = "Common Material Attributes"
     ]], 
-    color in_transparencyColor = color(0)
+    color transparency_color = color(0)
     [[
-        string maya_attribute_name = "transparencyColor",
-        string maya_attribute_type = "vector",
         string label = "Transparency Color",
         string page = "Transparency"
     ]],
-    float in_matteOpacity = 1.0
+    float matte_opacity = 1.0
     [[
-        string maya_attribute_name = "matteOpacity",
-        string maya_attribute_type = "float",
         string label = "Matte Opacity",
         string page = "Matte Opacity"
     ]],
 
-    output closure color out_outColor = 0
+    output closure color output_color = 0
     [[
-        string maya_attribute_name = "outColor",
-        string maya_attribute_type = "vector",
         string label = "Output Color",
         string widget = "null"
     ]],
-    output closure color out_outTransparency = 0
+    output closure color output_transparency = 0
     [[
-        string maya_attribute_name = "outTransparency",
-        string maya_attribute_type = "vector",
         string label = "Output Transparency",
         string widget = "null"
     ]],
-    output closure color out_outMatteOpacity = 0
+    output closure color output_matte_opacity = 0
     [[
-        string maya_attribute_name = "outMatteOpacity",
-        string maya_attribute_type = "vector",
         string label = "Output Matte Opacity",
         string widget = "null"
     ]]
 )
 {
-    if (raytype("shadow"))
+    if (raytype("shadow") || raytype("transparency"))
     {
-        out_outColor = in_transparencyColor * transparent();
-        out_outTransparency = out_outColor;
+        output_color = transparency_color * transparent();
+        output_transparency = output_color;
     }
     else
     {
@@ -195,29 +164,29 @@ shader as_plastic
         closure color specular_term = 0;
         closure color holdout_term = 0;
 
-        if (in_surfaceColor || in_reflectance)
+        if (surface_color || reflectance)
         {
-            normal Nn = normalize(in_normalCamera);
+            normal Nn = normalize(surface_normal);
 
-            color opacity = 1 - in_transparencyColor;
+            color opacity = 1 - transparency_color;
 
             float ior = (backfacing())
-                ? ior_from_normal_reflectance(in_reflectance)
-                : 1 / ior_from_normal_reflectance(in_reflectance);
+                ? ior_from_normal_reflectance(reflectance)
+                : 1 / ior_from_normal_reflectance(reflectance);
 
-            if (in_surfaceColor)
+            if (surface_color)
             {
                 int ray_depth = 0;
 
                 getattribute("path:ray_depth", ray_depth);
 
-                if (ray_depth <= in_sssRayDepth)
+                if (ray_depth <= sss_ray_depth)
                 {
                     subsurface_term = opacity * as_subsurface(
-                        in_profile,
-                        in_normalCamera,
-                        in_surfaceColor,
-                        in_radius * in_radiusScale,
+                        sss_profile,
+                        surface_normal,
+                        surface_color,
+                        sss_radius * sss_radius_scale,
                         ior);
                 }
                 else
@@ -226,34 +195,34 @@ shader as_plastic
                     fresnel(normalize(I), Nn, ior, Kr, Kt);
 
                     subsurface_term = opacity * (1 - Kr) *
-                        oren_nayar(Nn, in_specularRoughness);
+                        oren_nayar(Nn, specular_roughness);
                 }
             }
 
-            if (in_reflectance)
+            if (reflectance)
             {
                 int ray_depth = 0;
 
                 getattribute("path:ray_depth", ray_depth);
 
-                if (ray_depth <= in_specularRayDepth)
+                if (ray_depth <= specular_ray_depth)
                 {
                     specular_term = opacity * as_glossy(
                         "ggx",
                         Nn,
                         microfacet_roughness(
-                            in_specularRoughness,
-                            in_specularRoughnessDepthScale),
+                            specular_roughness,
+                            specular_roughness_depth_scale),
                         ior);
                 }
             }
         }
 
-        holdout_term = in_matteOpacity * holdout();
+        holdout_term = matte_opacity * holdout();
 
-        out_outTransparency = in_transparencyColor * transparent();
+        output_transparency = transparency_color * transparent();
 
-        out_outColor = subsurface_term + specular_term + holdout_term +
-            out_outTransparency;
+        output_color = subsurface_term + specular_term + holdout_term +
+            output_transparency;
     }
 }
