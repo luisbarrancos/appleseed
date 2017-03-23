@@ -65,9 +65,9 @@ set (CMAKE_CONFIGURATION_TYPES "Debug;Release;Profile;Ship" CACHE STRING "" FORC
 
 # Select a build configuration if none is selected yet.
 if (NOT CMAKE_BUILD_TYPE)
-    convert_list_to_string (config_types_string ${CMAKE_CONFIGURATION_TYPES})
     set (CMAKE_BUILD_TYPE Ship
-         CACHE STRING "Choose the type of build, options are: ${config_types_string}" FORCE)
+         CACHE STRING "Choose the type of build, options are: ${CMAKE_CONFIGURATION_TYPES}" FORCE)
+    set_property (CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 endif ()
 
 project (appleseed)
@@ -117,8 +117,8 @@ option (USE_CPP11                           "Use C++11"                         
 option (USE_STATIC_BOOST                    "Use static Boost libraries"                            ON)
 option (USE_STATIC_OIIO                     "Use static OpenImageIO libraries"                      ON)
 option (USE_STATIC_OSL                      "Use static OpenShadingLanguage libraries"              ON)
-
 option (WARNINGS_AS_ERRORS                  "Treat compiler warnings as errors"                     ON)
+
 option (HIDE_SYMBOLS                        "When using gcc, hide symbols not on the public API"    ON)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD")
@@ -147,6 +147,7 @@ if (USE_CPP11)
 else ()
     message ("Building in C++03 mode.")
 endif ()
+
 
 #--------------------------------------------------------------------------------------------------
 # Common settings.
