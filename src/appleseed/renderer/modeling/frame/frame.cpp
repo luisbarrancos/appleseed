@@ -90,6 +90,10 @@ UniqueID Frame::get_class_uid()
     return g_class_uid;
 }
 
+// This is not that simple. Target OETF can be something more complex than just a simple gamma CCTF
+// I.e: Rec.1886, DolbyPQ/ST2084, HLG, Rec.2020
+
+
 struct Frame::Impl
 {
     size_t                  m_frame_width;
@@ -158,6 +162,65 @@ void Frame::release()
 {
     delete this;
 }
+
+// This would need some changes:
+//
+//  Color space, aka rendering/working space: (_all_ color spaces assumed scene-linear)
+//
+//  Working Space:
+//
+//      1) ACES 2065-1 AP0 D60
+//      2) ACEScg AP1 D60
+//      3) sRGB/Rec.709 D65
+//      4) Rec.2020 D65
+//      5) DCI-P3
+//      6) CIE XYZ D60
+//      7) CIE XYZ D65
+//      8) DCDM (CIE XYZ DCI-P3 whitepoint)
+//      7) Spectral D65
+//
+// Gamma correction: remove, replace by, Look Modification Transform (load custom CTL files, or CLF (Common Lut Formats)), by
+// reference rendering transform (RRT), and by output device transform (ODT).
+// I suppose this is more meaningful for AS studio.
+//
+//  LMT:
+//
+//      1) example film look LUT (CTL for Kodak Vision3 500T 5219 film for instance)
+//
+//  * Debatable. Although a pre-grade choise, this is taking AS in a different direction. We just care about getting
+//    colorimetry correct scene-linear data (or OETF/OOTF encoded), and pre-grading and grading choices should be done
+//    elsewhere. This was added here just for illustration purposes when referencing the pipeline workflow.
+//
+//  RRT:
+//
+//      1) ACES 0.7 RRT
+//      2) ACES 1.0.3 RRT
+//      3) OCIO
+//
+//  * Debatable as well. For OCIO this is intrinsic, nothing for us to do here. For non-OCIO case, we might apply a RRT via
+//    for instance CTL.
+//
+//  ODT:
+//
+//      1) ACEScc
+//      2) ACEScct
+//      3) Rec.709 OETF
+//      4) Rec.1886 OETF
+//      5) Rec.2020 OETF
+//      6) DCI-P3 OETF *
+//      7) DolbyPQ 1000 / ST2084 (1000 nits)
+//      8) Hybrid Log Gamma / HLG
+//      9) <favourite log formats here>
+//
+// * gamma 2.6, but valid only for DCDM/CIE XYZ space as set in digital cinema specs
+//
+
+// NOTE:
+//
+// pixel format? of the target, but wouldn't this be dictated by the file format choice?
+// I.e: choosing a JPEG implies 8bpc, a PNG 8bpc uint or 16bpc uint.
+// A TIFF 8, 16, 32bpc uint or 32bpc float. Etc...
+
 
 void Frame::print_settings()
 {
@@ -328,6 +391,8 @@ namespace
             Color4f color;
 #endif
             tile.get_pixel(i, color);
+
+            // See above. This is referring to OETF/CCTF conversion
 
             // Apply color space conversion.
             switch (ColorSpace)

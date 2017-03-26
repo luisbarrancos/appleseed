@@ -70,6 +70,17 @@ namespace
     // for straightforward expressions such as a single scalar or a simple texture lookup.
     //
 
+    // NOTE:
+    //
+    //  m_texture_is_srgb? This is referring to the color component transfer function. Why is this here?
+    //  Any ingested material should've long be converted to scene linear and matching color space primaries and whitepoint
+    //  as of working/render space.
+    //  I.e:. a texture processing tool such as txmake/maketx would've dealt with this making sure all inputs are linear.
+    //
+    //  For values in the color picker, check colorentity.cpp, they would've needed to be color managed as well, transformed from
+    //  input/ingested space (ideally one that would match viewer display) to working/renderer space.
+    //
+
     class DisneyLayerParam
     {
       public:

@@ -59,6 +59,9 @@ namespace foundation
 // Enumeration of all supported color spaces.
 //
 
+// Same as earlier, separation of color representation model from color space
+//
+
 enum ColorSpace
 {
     ColorSpaceLinearRGB,        // linear RGB
@@ -109,6 +112,9 @@ extern const RegularSpectrum31f DaylightS2;                     // second charac
 
 // Daylight illuminants.
 extern const RegularSpectrum31f IlluminantCIED65;               // CIE D65
+
+// Add D60, DCIP3 at least
+// It would be interesting adding the F series
 
 // Incandescent lighting illuminants.
 extern const RegularSpectrum31f IlluminantCIEA;                 // CIE A (black body radiator at 2856 K)
@@ -235,6 +241,11 @@ Color<T, 3> linear_rgb_to_hsl(const Color<T, 3>& linear_rgb);
 //   http://graphics.stanford.edu/courses/cs148-10-summer/docs/2010--kerr--cie_xyz.pdf
 //
 
+// This depends on the whitepoint. If the working/render space whitepoint differ from the
+// target output whitepoint, we'll need a chromatic adaptation transform
+// This means adding the different CATs (Bradford, CAT02, Bianco, etc)
+
+
 // Convert a color from the CIE XYZ color space to the linear RGB color space.
 template <typename T>
 Color<T, 3> ciexyz_to_linear_rgb(const Color<T, 3>& xyz);
@@ -252,6 +263,10 @@ Color<T, 3> linear_rgb_to_ciexyz(const Color<T, 3>& linear_rgb);
 //   http://en.wikipedia.org/wiki/CIE_1931_color_space#The_CIE_xy_chromaticity_diagram_and_the_CIE_xyY_color_space
 //
 
+// Same as above
+
+// NOTE: it could be worthwhile to add fast vector3/matrix3x3 functions
+
 // Convert a color from the CIE XYZ color space to the CIE xyY color space.
 template <typename T>
 Color<T, 3> ciexyz_to_ciexyy(const Color<T, 3>& xyz);
@@ -260,6 +275,11 @@ Color<T, 3> ciexyz_to_ciexyy(const Color<T, 3>& xyz);
 template <typename T>
 Color<T, 3> ciexyy_to_ciexyz(const Color<T, 3>& xyy);
 
+
+
+// it would be good to separate color spaces, from color component transfer functions
+// Linear gamma to sRGB CCTF here, but one can have Rec.1886/Rec709/Rec2020/DolbyPQ|ST2084
+// HLG and flavours of log encoding
 
 //
 // Linear RGB <-> sRGB transformations.
@@ -302,6 +322,12 @@ inline __m128 faster_linear_rgb_to_srgb(const __m128 linear_rgb);
 #endif
 Color3f faster_linear_rgb_to_srgb(const Color3f& linear_rgb);
 Color3f faster_srgb_to_linear_rgb(const Color3f& srgb);
+
+// The relative luminance depends on the color space and whitepoint, so this
+// can either be computed from the RGB(white) xy chromaticity coordinates transformed to XYZ
+// potentially chromatically adapted if working space differs from output space
+
+// The values here are hardcoded sRGB/Rec709 D65 Y values
 
 
 //
@@ -464,9 +490,26 @@ Color<T, 3> transform_color(
 }
 
 
+
+// Color transformations would probably be best done outside color spaces, since there
+// are transformations of color models, and transformations of color spaces
+
+// i.e: HSV, HLS, Lab, etc
+
+// NOTE: any transformations would be in linear RGB values, that is implied.
+//       There is no case to use CCTF encoded values other than for the target output or
+//       for linearizing input of ingested material
+
+// NOTE: Adding Lab is handy to get the deltaE
+//
+// http://www.brucelindbloom.com/index.html?Eqn_DeltaE_CIE94.html
+
+
 //
 // HSV <-> linear RGB transformations implementation.
 //
+
+// Note that for luma one usually uses Y, so it depends on the color space
 
 template <typename T>
 inline Color<T, 3> hsv_to_linear_rgb(const Color<T, 3>& hsv)
@@ -587,15 +630,28 @@ inline Color<T, 3> linear_rgb_to_hsl(const Color<T, 3>& linear_rgb)
 // CIE XYZ <-> linear RGB transformations implementation.
 //
 
+
+// Hardcoded here to Rec709.
+// We can provide the default RGB<>XYZ matrices for the most common/relevant spaces, and/or compute
+// from first principles / xy chromaticity coordinates for primaries and illuminant.
+// The RGB<>XYZ matrices might be chromatically adapted if the destination and target white points differ
+//
+
 template <typename T>
 inline Color<T, 3> ciexyz_to_linear_rgb(const Color<T, 3>& xyz)
 {
     return
         clamp_low(
             Color<T, 3>(
+#ifdef REC709_PRIMARIES
                 T( 3.240479) * xyz[0] + T(-1.537150) * xyz[1] + T(-0.498535) * xyz[2],
                 T(-0.969256) * xyz[0] + T( 1.875991) * xyz[1] + T( 0.041556) * xyz[2],
                 T( 0.055648) * xyz[0] + T(-0.204043) * xyz[1] + T( 1.057311) * xyz[2]),
+#else
+                T( 1.7166511880) * xyz[0] + T(-0.3556707838) * xyz[1] + T(-0.2533661814) * xyz[2],
+                T(-0.6666843518) * xyz[0] + T( 1.6164812366) * xyz[1] + T( 0.0157685458) * xyz[2],
+                T( 0.0176398574) * xyz[0] + T(-0.0427706133) * xyz[1] + T( 0.9421031212) * xyz[2]),
+#endif
             T(0.0));
 }
 
@@ -605,9 +661,15 @@ inline Color<T, 3> linear_rgb_to_ciexyz(const Color<T, 3>& linear_rgb)
     return
         clamp_low(
             Color<T, 3>(
+#ifdef REC709_PRIMARIES
                 T(0.412453) * linear_rgb[0] + T(0.357580) * linear_rgb[1] + T(0.180423) * linear_rgb[2],
                 T(0.212671) * linear_rgb[0] + T(0.715160) * linear_rgb[1] + T(0.072169) * linear_rgb[2],
                 T(0.019334) * linear_rgb[0] + T(0.119193) * linear_rgb[1] + T(0.950227) * linear_rgb[2]),
+#else
+                T(0.6369480483) * linear_rgb[0] + T(0.1446169036) * linear_rgb[1] + T(0.1688809752) * linear_rgb[2],
+                T(0.2627002120) * linear_rgb[0] + T(0.6779980715) * linear_rgb[1] + T(0.0593017165) * linear_rgb[2],
+                T(0.0000000000) * linear_rgb[0] + T(0.0280726930) * linear_rgb[1] + T(1.0609850577) * linear_rgb[2]),
+#endif
             T(0.0));
 }
 
@@ -616,12 +678,18 @@ inline Color<T, 3> linear_rgb_to_ciexyz(const Color<T, 3>& linear_rgb)
 // CIE XYZ <-> CIE xyY transformations implementation.
 //
 
+// For black level, when X=Y=Z=0 one sets the chromaticity coordinates
+// xy to the chromaticity coordinates of the reference white point
+//
 template <typename T>
 inline Color<T, 3> ciexyz_to_ciexyy(const Color<T, 3>& xyz)
 {
     const T rcp_sum = T(1.0) / (xyz[0] + xyz[1] + xyz[2]);
     return Color<T, 3>(xyz[0] * rcp_sum, xyz[1] * rcp_sum, xyz[1]);
 }
+
+// with xyY whose Y is in [0,1] range, output is in [0,1] range, but
+// if y==0, then one would set X=Y=Z=0
 
 template <typename T>
 inline Color<T, 3> ciexyy_to_ciexyz(const Color<T, 3>& xyy)
@@ -633,6 +701,10 @@ inline Color<T, 3> ciexyy_to_ciexyz(const Color<T, 3>& xyy)
 
 //
 // Linear RGB <-> sRGB transformations implementation.
+//
+
+// CCTFs: these would be separated from color spaces:
+// i.e: color spaces != color models != color component transfer functions
 //
 
 template <typename T>
@@ -682,6 +754,11 @@ inline float fast_srgb_to_linear_rgb(const float c)
         ? (1.0f / 12.92f) * c
         : fast_pow((c + 0.055f) * (1.0f / 1.055f), 2.4f);
 }
+
+// Note: (AVX/FMA) intrinsics versions of xyY<>XYZ, RGB<>XYZ, chromatic adaptation, vector3/matrix3x3 transforms?
+
+// Note: easier to do SSE intrinsics of color component transfer functions, worthwhile exercise
+
 
 #ifdef APPLESEED_USE_SSE
 
@@ -804,13 +881,23 @@ inline Color3f faster_srgb_to_linear_rgb(const Color3f& srgb)
 // Relative luminance function implementation.
 //
 
+// The Y in XYZ depends on the system chromaticity coordinates and whitepoint
+// These are presently hardcoded as the Rec709 coefficients, see the RGB<>XYZ matrices above
+
+
 template <typename T>
 inline T luminance(const Color<T, 3>& linear_rgb)
 {
     return
+#ifdef REC709_PRIMARIES
         T(0.212671) * linear_rgb[0] +
         T(0.715160) * linear_rgb[1] +
         T(0.072169) * linear_rgb[2];
+#else
+        T(0.2627002120) * linear_rgb[0] +
+        T(0.6779980715) * linear_rgb[1] +
+        T(0.0593017165) * linear_rgb[2];
+#endif
 }
 
 
@@ -872,6 +959,17 @@ inline Color3f spectrum_to_ciexyz<float, RegularSpectrum31f>(
 
 #endif  // APPLESEED_USE_SSE
 
+// ??
+// this is confusing, ciexyz to linear rgb(xyz)
+// It would be good to just use CIEXYZ or just XYZ, instead of xyz, there is a valid case for xy(z) usage, and for XYZ
+//
+
+// also, the ciexyz_to_linear_rgb(), any calculations are done with linearized quantities, first and aforemost the
+// CCTFs are removed. The exception here is not RGB being linear. The exception is RGB not being linear and having
+// a CCTF/EOTF applied either because ingested material is not linear and is being prepared for rendering in the working
+// space and encoding, or because the material is having a OETF applied to the output
+//
+
 template <typename T, typename SpectrumType>
 void ciexyz_reflectance_to_spectrum(
     const Color<T, 3>&          xyz,
@@ -896,6 +994,8 @@ void ciexyz_illuminance_to_spectrum(
 //
 // Convert the CIE xy chromaticity of a D series (daylight) illuminant to a spectrum.
 //
+
+// easy to confuse. Name things as they are, XYZ and xy, xyz, or xyY. Much clearer and unambiguous
 
 template <>
 inline void daylight_ciexy_to_spectrum<float, RegularSpectrum31f>(
@@ -922,6 +1022,9 @@ inline void daylight_ciexy_to_spectrum<float, RegularSpectrum31f>(
 //
 // Linear RGB to spectrum transformation implementation.
 //
+
+// What is the reference?
+
 
 namespace impl
 {
@@ -1063,6 +1166,9 @@ inline void linear_rgb_reflectance_to_spectrum(
     linear_rgb_reflectance_to_spectrum_unclamped(linear_rgb, spectrum);
     clamp_low_in_place(spectrum, T(0.0));
 }
+
+
+// Curious to find out more about this and the blue tint
 
 template <typename T, typename SpectrumType>
 void linear_rgb_illuminance_to_spectrum_unclamped(

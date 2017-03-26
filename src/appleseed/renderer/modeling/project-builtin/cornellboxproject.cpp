@@ -72,6 +72,9 @@ using namespace std;
 namespace renderer
 {
 
+// NOTE: awareness of working/renderspace (and illuminant) when going from SPD->XYZ->RGB
+//
+
 //
 // CornellBoxProjectFactory class implementation.
 //

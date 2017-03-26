@@ -223,8 +223,35 @@ void PNGImageFileWriter::write(
         PNG_COMPRESSION_TYPE_DEFAULT,
         PNG_FILTER_TYPE_DEFAULT);
 
-    // Mark the image as being sRGB (implying specific gamma and color matching functions).
-    // See http://www.vias.org/pngguide/chapter10_07.html for details about intents.
+    // NOTE:
+    // this implies scene-linear to sRGB OETF, but there might be other render targets, and there is also
+    // the problem of wider gamuts, i.e: ACEScg, DCI-P3, Rec.2020, being mapped to a much smaller gamut (sRGB/Rec709)
+    // which will result in clipping, unless a say, soft clip LMT is applied, but this is way way outside the scope
+    // of AS
+    //
+    // INTENTS:
+    //
+    //  Perceptual intent:     compresses the wider gamut into smaller gamut
+    //
+    //  Saturation intent:     tries to reduce saturation to get out of gamut color into smaller gamut
+    //
+    //  Relative Colorimetric: colors outside of gamut are mapped to closest possible, with white point change if
+    //                         needed
+    //
+    //  Absolute Colorimetric: colors outside of gamut are not mapped to closest possible, no change takes place,
+    //                         out of gamut colors are clipped
+    //
+    // NOTE:
+    //
+    //  This is active R&D topic, specially when it comes to HDR, considerably outside AS
+    //
+    //  Inevitably there will be clipping when coming from wider gamuts, and in perceptual intent as default, colors
+    //  will change since the gamut will be compressed to sRGB/Rec709 gamut.
+
+
+    // I don't think this is critical, since bit depth is restricted to 8bit
+    // Much more critical will be supporting TIFF 8/16bit unsigned int and 32bit float
+
     png_set_sRGB_gAMA_and_cHRM(
         png_ptr,
         info_ptr,

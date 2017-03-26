@@ -82,6 +82,19 @@ namespace
             // Establish and store the qualified path to the texture file.
             m_filepath = to_string(search_paths.qualify(m_params.get_required<string>("filename", "")));
 
+            // ???
+            // This is a unconverted texture, or a converted .tx/.tex texture, from a tool such as maketx/txmake?
+            // An external texture processing tool would've been aware of things such as OCIO and would (hopefully if the user set it)
+            // transform from the input space to the working/render space via the IDT (input device transform).
+            //
+            // Here it's referring to the EOTF it seems, "linear_rgb" vs "srgb". This would've been dealt with in a
+            // section respective for the input device transforms / IDTs:
+            //      subsection respective for color component transfer functions CCTF (EOTF/OETF/OOTF), and
+            //      subsection respective for color space transform (primaries, and whitepoint)
+            //
+            // See texturestore.cpp ?
+            //
+
             // Retrieve the color space.
             const string color_space =
                 m_params.get_required<string>(
@@ -209,6 +222,23 @@ DictionaryArray DiskTexture2dFactory::get_input_metadata() const
             .insert("file_picker_type", "image")
             .insert("use", "required"));
 
+    // See options in frame.cpp
+    //
+    // For a file, one would need to have all the relevant quantities for IDTs
+    //
+    //  IDT:
+    //
+    //      1) sRGB Texture (i.e: standard sRGB CCTF, sRGB/Rec709 primaries, D65 whitepoint)
+    //      2) scene-linear sRGB/Rec709
+    //      3) scene-linear Rec2020
+    //      4) AdobeRGB texture (i.e: gamma 2.1998175..., AdobeRGB primaries, D65 whitepoint)
+    //      5) scene-linear ACEScg AP1
+    //      6) scene-linear ACES 2065-1 AP0
+    //      7) S-Log3 Sony (...)
+    //      8) C-Log Canon ...
+    //      9) Arri log, etc..
+    //        ... other IDT here ...
+    //
     metadata.push_back(
         Dictionary()
             .insert("name", "color_space")

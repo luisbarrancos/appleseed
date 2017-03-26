@@ -33,6 +33,17 @@
 namespace foundation
 {
 
+// separating color models from color space.
+// A color can have its transformations defined in regard to a certain primaries
+// system, and have multiple representations of itself in different models:
+// i.e: HSL, HSV, Lab, RGB, CMYK
+//
+// https://en.wikipedia.org/wiki/Color_model
+//
+
+// another suggestions, keep the upper/lower case, CIE XYZ is XYZ not xyz, though that
+// is clear from the case, it might be confusing from the return statement.
+//
 const char* color_space_name(const ColorSpace color_space)
 {
     switch (color_space)
@@ -55,6 +66,10 @@ const char* color_space_name(const ColorSpace color_space)
 //
 // Basis vectors to convert the CIE xy chromaticity of a D series (daylight) illuminant to a spectrum.
 //
+
+// hmm, 400 to 700nm?
+// there is meaningful data from the CIE1931 2deg observer results in 360 to 400, mostly at 380nm already,
+// usually data is presented from 380 to 780nm
 
 namespace
 {
@@ -172,6 +187,13 @@ const RegularSpectrum31f DaylightS2(DaylightS2Amplitudes);
 //
 // Standard illuminants.
 //
+
+// Add D60 and DCI-P3 illuminants perhaps? For other rendering/working spaces, the white point might differ and when
+// going from SPD->XYZ, we either use the standard D65 illuminant, and then chromatically adapt XYZ D65 to the
+// white point of the working/renderspace, or we start from the scratch with other illuminants.
+// Though it's simpler to just do the chromatic adaptation to the render/working space later of the XYZ tristimulus,
+// it would be interesting to see the results from CMF functions with native D60, DCI-P3.
+
 
 namespace
 {

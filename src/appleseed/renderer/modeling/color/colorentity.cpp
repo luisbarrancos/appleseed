@@ -127,6 +127,14 @@ ColorEntity::~ColorEntity()
     delete impl;
 }
 
+// As with previous notes for color space
+//
+// Separate CCTFs (EOTF/OETF/OOTF) from the actual color spaces
+// separate color models from color spaces
+//
+// When going from spectral to CIE XYZ, be aware that illuminant of working/render space might differ from standard illuminant
+// used for the CMFs, so a chromatic adaptation will be required to go from D65 to render/working space, of say: ACEScg D60 or DCI-P3.
+//
 void ColorEntity::extract_parameters()
 {
     // Retrieve the color space.
@@ -257,6 +265,12 @@ float ColorEntity::get_multiplier() const
 
 //
 // ColorEntityFactory class implementation.
+//
+
+// NOTE: See the options in modeling/frame/frame.cpp and notes added there
+//       regarding color space, LMT, RRT, ODT
+//
+// Basically the same: Separate color spaces from CCTF (EOTF/OETF/OOTF) and color models
 //
 
 DictionaryArray ColorEntityFactory::get_input_metadata()

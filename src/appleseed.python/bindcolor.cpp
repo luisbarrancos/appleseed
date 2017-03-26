@@ -133,6 +133,10 @@ namespace
     }
 }
 
+// Same as in earlier. This is what, then working/render space?
+// If so, see frame.cpp
+//
+
 void bind_color()
 {
     bpy::enum_<ColorSpace>("ColorSpace")

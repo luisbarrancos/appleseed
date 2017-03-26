@@ -69,6 +69,10 @@ namespace foundation
 // EXRImageFileWriter class implementation.
 //
 
+// Only RGBA channels supported? If so, then one can standardize on ACES 2065-4 container for now, and
+// have multichannel EXRs (non ACES 2065-4) after.
+
+
 namespace
 {
     const char* ChannelName[] = { "R", "G", "B", "A" };
@@ -116,6 +120,43 @@ void EXRImageFileWriter::write(
             static_cast<int>(props.m_canvas_height));
         header.setTileDescription(tile_desc);
         header.channels() = channels;
+
+
+        // here one would add the RGB and white point xy chromaticities, see
+        // ImfStandardAttribute.h:89
+        //
+        // The white luminance is trickier, but a value of 100nits (cd/m^2) is standard for Rec709
+        // and most displays.
+        //
+        // adoptedNeutral unused
+        //
+        // renderingTransform and lookModTransform (RRT, LMT), specify CTL files
+        // this is beneficial for 3rd party applications, but it implies distributing some CTL files as
+        // well. It can be done. I.e: set output space as for instance, DolbyPQ/ST2084 in Appleseed
+        // Studio and this implies:
+        //
+        //  1.) chromaticity coordinates of RGB primaries set to Rec.2020
+        //  2.) whitepoint set to D65 (resp. xy coordinates)
+        //  3.) white level set to 1000 nits (cd/m^2) (remember MaxFALL/MaxCLL in HDR TV will bring this down)
+        //  4.) An RRT here not sure if is meant as RRT+ODT, if so, i.e ACES RRT + DolbyPQ/ST2084 OOTF (optical to
+        //      optical transfer function, remember it is HDR TV)
+        //
+        //  or for standard HDTV for instance
+        //
+        //  1). chromaticity coordinates of RGB primaries set to Rec.709 primaries
+        //  2). whitepoint to D65
+        //  3). white level set to 100 nits (cd/m^2)
+        //  4). RRT, as Rec.1886 OETF alone or ACES 1.0.3 RRT + Rec.1886 OETF
+        //
+        //
+        //
+        //  MaxFALL: maximum frame average light level
+        //  MaxCLL:  maximum content light level
+        //
+        //  In order not to fry retinas nor burn displays, the entire screen cannot be at 1000 nits values, only a certain
+        //  amount can, and if this value (MaxFALL) is exceeded, then the display reduces the intensity.
+
+
 
         // Add image attributes to the Header object.
         add_attributes(image_attributes, header);

@@ -55,6 +55,11 @@
 using namespace foundation;
 using namespace std;
 
+
+// So it seems here we need to apply the EOTF, color space transformation and chromatic adaptation (if needed), the
+// input device transforms.
+// More below
+
 namespace renderer
 {
 
@@ -99,6 +104,64 @@ Dictionary TextureStore::get_params_metadata()
 // TextureStore::TileSwapper class implementation.
 //
 
+// This is going to be more complex
+//
+// Ingested material exists in a encoding, color space, and white point definition
+//
+// The process is:
+//
+//  1. apply EOTF to get ingested material into linear gamma
+//
+//  2. convert from ingested material color space to rendering/working space
+//     (i.e: a sRGB/Rec709 JPG texture, converted into Rec.2020 rendering/working space)
+//
+//      if the rendering/working space has a different white point: ACES 2065-1 AP0, or ACEScg - both with D60,
+//      or DCI-P3 with the whitepoint outside the daylight curve, then you have 2 choices
+//
+//          a) use a precomputed chromatically adapted RGB to RGB matrix (see OSL chromatic adaptation, colorimetry)
+//
+//          b) do it on the fly for arbitrarily set whitepoints by converting the ingested material to XYZ intermediary space
+//             and chromatically adapt for the rendering/working space whitepoint. Example, linear gamma sRGB/Rec709 D65, converted to
+//             XYZ, and XYZ adapted to D60 whitepoint with a von Kries transform (and one of several chromatic adaptation transforms)
+//
+// Example 1:
+//
+//  Working space was set as Rec.2020, D65 whitepoint. Textures are sRGB JPEGs, D65.
+//
+//      1) apply sRTB EOTF
+//      2) convert from sRGB/Rec709 chromaticies to Rec.2020 working space. The white point is the same, no CAT needed.
+//
+// Example 2:
+//
+//  Working space set to ACEScg AP1 D60 white point, textures are sRGB JPEGs, D65
+//
+//      1) apply sRGB EOTF
+//      2) convert from sRGB/Rec709 chromaticities to ACEScg working space, but whitepoint differ, so:
+//
+//          a) use precomputed RGB->RGB matrices, see OSL colorimetry, and chromatic adaptation
+//
+//          b)  * convert from sRGB/Rec709 primaries to CIE XYZ
+//              * apply von Kries transform to change from input D65 whitepoint, to working space D60 whitepoint
+//              * convert from CIE XYZ to ACEScg primaries
+//
+// Example 3:
+//
+//  Working space set to ACES 2065-1 AP0, white point is D60. No ingested textures, but procedural sky models using
+//  spectral data for instance.
+//
+//      1) no EOTF to apply, data is procedurally generated, linear, but color space is a consideration
+//      2) convert from SPD to XYZ, but CMFs are with standard observer and D65 illuminant, so if the working/render space
+//         differs, one would need to chromatically adapt the XYZ to the working/render space white point, from D65 to D60 here.
+//         NOTE: alternatively, it would be interesting to see if we could use the CMFs with D60 illuminant.
+//
+// Example 4:
+//
+//  Working space set to Rec.709, white point D65, ingested textures are log encoded TIFFs, i.e. S-Log3
+//
+//      1) apply S-Log3 to linear EOTF
+//      2) same chromaticities, and white point, no further change required
+//
+
 namespace
 {
     // Convert a tile from the sRGB color space to the linear RGB color space.
@@ -131,6 +194,13 @@ namespace
     }
 
     // Convert a tile from the CIE XYZ color space to the linear RGB color space.
+
+    // NOTE: Same as above: chromatic adaptation.
+    // The advantage of precomputed matrices is saving computation time.
+    // The disadvantage, we cannot use any arbitrary illuminant unless we precomputed all possible matrices, which is
+    // a considerable number of combinations, but in practical terms, it's unlikely the working/rendering space will be different
+    // than D60, D65, DCI-P3. So these combinations at least have to be done.
+    //
     void convert_tile_ciexyz_to_linear_rgb(Tile& tile)
     {
         const size_t pixel_count = tile.get_pixel_count();
@@ -195,6 +265,8 @@ void TextureStore::TileSwapper::load(const TileKey& key, TileRecord& record)
     // Load the tile.
     record.m_tile = texture->load_tile(key.get_tile_x(), key.get_tile_y());
     record.m_owners = 0;
+
+    // Same as above
 
     // Convert the tile to the linear RGB color space.
     switch (texture->get_color_space())

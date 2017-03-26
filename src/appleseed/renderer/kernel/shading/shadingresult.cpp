@@ -42,6 +42,58 @@ using namespace foundation;
 namespace renderer
 {
 
+// It seems here we do the output device transformation: going from rendering/working space to output color space
+// the ODT - output device transform
+//
+//  1. convert from rendering/working space to target/output color space
+//
+//          if the working/rendering space has a different white point than output/target space, then two choices:
+//
+//          1) use chromatically adapted precomputed RGB->RGB matrices, see OSL colorimetry/chromatic adaptation headers
+//          2) use von Kries transform on the fly, more expensive but more flexible
+//             This requires however having available easily the R,G,B,W xy chromaticity coordinates
+//
+//  2. apply a reference rendering transform (RRT) or look modification transform if needed (LMT), to get data
+//     from scene-linear i.e. ACES into OCES state. The RRT is meant to;
+//
+//          1) tonemap somewhat the scene-linear HDR data, to rolloff the highlights/shoulder of the tone curve and
+//             the toe of the curve (shadows)
+//          2) compensate for surround illumination by increasing the slope of the tone curve at the 50% grey (0.18) to 1.1 IIRC
+//             (see also system gamma as in ratio of viewing gamma to device gamma, or video system gamma)
+//
+//  3. apply the OETF or OOTF for the target device: i.e. Rec.709 OETF, DolbyPQ/ST2084, Hybrid Log Gamma / HLG, Log, etc..
+//
+//  4: make sure the transforms are set into the EXR file, see ImfStandardAttributes.h:125
+//
+//          1) chromaticities xy, for R,G,B,W
+//          2) white level (i.e: 100 nits (cd/m^2) for Rec709, 1000 nits for DolbyPQ 1000, 80 nits for sRGB in dark environment)
+//              (3) renderingTransform, lookModTransform CTL files, if needed, but this implies having and distributing CTL files, and
+//                  might be problematic with OCIO. Nevertheless, i had to mention it)
+//
+//  Example:
+//
+//  Rendering/Working space set to ACEScg AP1. It has a D60 whitepoint. Target/output, a PNG file, with sRGB/Rec709 primaries D65 white
+//  point and the sRGB CCTF.
+//
+//  1) since the whitepoint of ACEScg is D60 and target is D65, either:
+//
+//      a) use precomputed ACEScg D60 -> Rec709 D65 matrix
+//
+//      b)  * convert ACEScg to CIE XYZ intermediary stage
+//          * apply von Kries transform on XYZ
+//          * convert chromatically adapted XYZ to target/output space, Rec709
+//
+//  2) No LMT used, and we decide not to use the ACES RRT either, so nothing to be done in stage 2. If we had used, say OCIO, then
+//     the RRT would be applied here to get data from scene-linear to OCES state.
+//
+//  3) Apply the OETF for the target device, here the sRGB OETF.
+//
+//  4) Not a EXR file, no extra EXR attributes to save
+//
+//  5) much rejoicing and beverages
+//
+
+
 //
 // ShadingResult class implementation.
 //

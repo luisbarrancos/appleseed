@@ -52,6 +52,20 @@ namespace renderer
 // ColorSource class implementation.
 //
 
+// NOTE: color pickers needs to be color managed.
+//
+// Colors are to be picked from input/ingested space into working/render space.
+// I.e: the display is a sRGB monitor like what everyone probably has a home.
+// The ideal would be having a transform going from this input space into the working/render space.
+//
+//  1) linearize, apply sRGB EOTF
+//  2) convert from input color space sRGB/Rec709 primaries to working/render space, i.e: ACEScg D60
+//  3) whitepoint differs, use intermediary space CIE XYZ, apply D65->D60 chromatic adapation
+//
+// NOTE: perhaps we can have an option to choose the color space of the picker, that way the user would be able to choose
+//       what would best suit him/her. Default to sRGB CCTF, sRGB/Rec709 primaries, D65 whitepoint
+//
+
 ColorSource::ColorSource(const ColorEntity& color_entity)
   : Source(true)
   , m_color_entity(color_entity)

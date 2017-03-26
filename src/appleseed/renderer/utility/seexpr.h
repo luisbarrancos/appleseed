@@ -157,6 +157,14 @@ class TextureSeExprFunc
             return;
         }
 
+        // ????
+        // SeExpr works with hardcoded sRGB/Rec709? The only reference i found was
+        // SeExpr/SeExprBuiltins.cpp:432, :448, for the relative luminance Y which is
+        // that of Rec709 yes
+        //
+        // This here is doing what? applying a OETF from linear gamma to a sRGB transfer correct?
+        //
+
         // Colors in SeExpr are always in the sRGB color space.
         if (!m_texture_is_srgb)
             color = foundation::linear_rgb_to_srgb(color);
