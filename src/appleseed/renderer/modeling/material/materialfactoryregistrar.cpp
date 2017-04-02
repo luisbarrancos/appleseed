@@ -34,9 +34,7 @@
 #include "renderer/modeling/material/genericmaterial.h"
 #include "renderer/modeling/material/material.h"
 #include "renderer/modeling/material/oslmaterial.h"
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
 #include "renderer/modeling/material/disneymaterial.h"
-#endif
 
 // appleseed.foundation headers.
 #include "foundation/utility/foreach.h"
@@ -66,9 +64,7 @@ MaterialFactoryRegistrar::MaterialFactoryRegistrar()
 
     register_factory(auto_ptr<FactoryType>(new OSLMaterialFactory()));
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     register_factory(auto_ptr<FactoryType>(new DisneyMaterialFactory()));
-#endif
 }
 
 MaterialFactoryRegistrar::~MaterialFactoryRegistrar()

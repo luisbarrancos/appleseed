@@ -318,12 +318,6 @@ set (foundation_mesh_sources
     foundation/mesh/objmeshfilewriter.cpp
     foundation/mesh/objmeshfilewriter.h
 )
-if (WITH_ALEMBIC)
-    list (APPEND foundation_mesh_sources
-        foundation/mesh/alembicmeshfilereader.cpp
-        foundation/mesh/alembicmeshfilereader.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${foundation_mesh_sources}
 )
@@ -438,6 +432,7 @@ set (foundation_meta_tests_sources
     foundation/meta/tests/test_sampling.cpp
     foundation/meta/tests/test_scalar.cpp
     foundation/meta/tests/test_searchpaths.cpp
+    foundation/meta/tests/test_seexpr.cpp
     foundation/meta/tests/test_settings.cpp
     foundation/meta/tests/test_sharedlibrary.cpp
     foundation/meta/tests/test_siphash.cpp
@@ -460,11 +455,6 @@ set (foundation_meta_tests_sources
     foundation/meta/tests/test_windows.cpp
     foundation/meta/tests/test_zip.cpp
 )
-if (WITH_DISNEY_MATERIAL)
-    list (APPEND foundation_meta_tests_sources
-        foundation/meta/tests/test_seexpr.cpp
-    )
-endif ()
 list (APPEND appleseed_sources
     ${foundation_meta_tests_sources}
 )
@@ -760,6 +750,8 @@ set (foundation_utility_sources
     foundation/utility/registrar.h
     foundation/utility/searchpaths.cpp
     foundation/utility/searchpaths.h
+    foundation/utility/seexpr.cpp
+    foundation/utility/seexpr.h
     foundation/utility/settings.h
     foundation/utility/siphash.cpp
     foundation/utility/siphash.h
@@ -784,18 +776,6 @@ set (foundation_utility_sources
     foundation/utility/zip.cpp
     foundation/utility/zip.h
 )
-if (WITH_DISNEY_MATERIAL)
-    list (APPEND foundation_utility_sources
-        foundation/utility/seexpr.cpp
-        foundation/utility/seexpr.h
-    )
-endif ()
-if (WITH_PARTIO)
-    list (APPEND foundation_utility_sources
-        foundation/utility/partiofile.cpp
-        foundation/utility/partiofile.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${foundation_utility_sources}
 )
@@ -1297,6 +1277,8 @@ set (renderer_modeling_bsdf_sources
     renderer/modeling/bsdf/diffusebtdf.h
     renderer/modeling/bsdf/disneybrdf.cpp
     renderer/modeling/bsdf/disneybrdf.h
+    renderer/modeling/bsdf/disneylayeredbrdf.cpp
+    renderer/modeling/bsdf/disneylayeredbrdf.h
     renderer/modeling/bsdf/fresnel.h
     renderer/modeling/bsdf/glassbsdf.cpp
     renderer/modeling/bsdf/glassbsdf.h
@@ -1329,12 +1311,6 @@ set (renderer_modeling_bsdf_sources
     renderer/modeling/bsdf/velvetbrdf.cpp
     renderer/modeling/bsdf/velvetbrdf.h
 )
-if (WITH_DISNEY_MATERIAL)
-    list (APPEND renderer_modeling_bsdf_sources
-        renderer/modeling/bsdf/disneylayeredbrdf.cpp
-        renderer/modeling/bsdf/disneylayeredbrdf.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${renderer_modeling_bsdf_sources}
 )
@@ -1359,6 +1335,8 @@ set (renderer_modeling_bssrdf_sources
     renderer/modeling/bssrdf/gaussianbssrdf.cpp
     renderer/modeling/bssrdf/gaussianbssrdf.h
     renderer/modeling/bssrdf/ibssrdffactory.h
+    renderer/modeling/bssrdf/normalizeddiffusionbssrdf.cpp
+    renderer/modeling/bssrdf/normalizeddiffusionbssrdf.h
     renderer/modeling/bssrdf/oslbssrdf.cpp
     renderer/modeling/bssrdf/oslbssrdf.h
     renderer/modeling/bssrdf/separablebssrdf.cpp
@@ -1368,12 +1346,6 @@ set (renderer_modeling_bssrdf_sources
     renderer/modeling/bssrdf/standarddipolebssrdf.cpp
     renderer/modeling/bssrdf/standarddipolebssrdf.h
 )
-if (WITH_NORMALIZED_DIFFUSION_BSSRDF)
-    list (APPEND renderer_modeling_bssrdf_sources
-        renderer/modeling/bssrdf/normalizeddiffusionbssrdf.cpp
-        renderer/modeling/bssrdf/normalizeddiffusionbssrdf.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${renderer_modeling_bssrdf_sources}
 )
@@ -1602,6 +1574,8 @@ source_group ("renderer\\modeling\\light" FILES
 set (renderer_modeling_material_sources
     renderer/modeling/material/bumpmappingmodifier.cpp
     renderer/modeling/material/bumpmappingmodifier.h
+    renderer/modeling/material/disneymaterial.cpp
+    renderer/modeling/material/disneymaterial.h
     renderer/modeling/material/genericmaterial.cpp
     renderer/modeling/material/genericmaterial.h
     renderer/modeling/material/ibasismodifier.h
@@ -1617,12 +1591,6 @@ set (renderer_modeling_material_sources
     renderer/modeling/material/oslmaterial.cpp
     renderer/modeling/material/oslmaterial.h
 )
-if (WITH_DISNEY_MATERIAL)
-    list (APPEND renderer_modeling_material_sources
-        renderer/modeling/material/disneymaterial.cpp
-        renderer/modeling/material/disneymaterial.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${renderer_modeling_material_sources}
 )
@@ -1880,24 +1848,13 @@ link_against_platform (appleseed)
 link_against_libpng (appleseed)
 link_against_xercesc (appleseed)
 
-if (WITH_ALEMBIC)
-    link_against_alembic (appleseed)
-    link_against_hdf5 (appleseed)
-endif ()
-
 link_against_openexr (appleseed)
 link_against_zlib (appleseed)
 
 link_against_oiio (appleseed)
 link_against_osl (appleseed)
 
-if (WITH_DISNEY_MATERIAL)
-    link_against_seexpr (appleseed)
-endif ()
-
-if (WITH_PARTIO)
-    link_against_partio (appleseed)
-endif ()
+link_against_seexpr (appleseed)
 
 target_link_libraries (appleseed
     ${Boost_LIBRARIES}

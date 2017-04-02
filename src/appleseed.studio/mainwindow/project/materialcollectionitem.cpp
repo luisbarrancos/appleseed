@@ -31,9 +31,7 @@
 
 // appleseed.studio headers.
 #include "mainwindow/project/assemblyitem.h"
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
 #include "mainwindow/project/disneymaterialcustomui.h"
-#endif
 #include "mainwindow/project/entityeditor.h"
 #include "mainwindow/project/entityeditorcontext.h"
 #include "mainwindow/project/entityeditorwindow.h"
@@ -93,8 +91,6 @@ MaterialCollectionItem::MaterialCollectionItem(
     add_items(materials);
 }
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
-
 const Material& MaterialCollectionItem::create_default_disney_material(const string& material_name)
 {
     auto_release_ptr<Material> material =
@@ -111,8 +107,6 @@ const Material& MaterialCollectionItem::create_default_disney_material(const str
     return *material_ptr;
 }
 
-#endif // APPLESEED_WITH_DISNEY_MATERIAL
-
 QMenu* MaterialCollectionItem::get_single_item_context_menu() const
 {
     QMenu* menu = ItemBase::get_single_item_context_menu();
@@ -122,11 +116,9 @@ QMenu* MaterialCollectionItem::get_single_item_context_menu() const
     menu->addAction("Create Generic Material...", this, SLOT(slot_create_generic()));
     menu->addAction("Create OSL Material...", this, SLOT(slot_create_osl()));
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     menu->addSeparator();
     menu->addAction("Create Disney Material...", this, SLOT(slot_create_disney()));
     menu->addAction("Import Disney Material...", this, SLOT(slot_import_disney()));
-#endif
 
     return menu;
 }
@@ -154,14 +146,11 @@ void MaterialCollectionItem::slot_create_generic()
 
 void MaterialCollectionItem::slot_create_disney()
 {
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     do_create_material("disney_material");
-#endif
 }
 
 void MaterialCollectionItem::slot_import_disney()
 {
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     QString filepath =
         get_open_filename(
             0,
@@ -227,7 +216,6 @@ void MaterialCollectionItem::slot_import_disney()
 
         m_editor_context.m_project_explorer.select_entity(material_ptr->get_uid());
     }
-#endif
 }
 
 void MaterialCollectionItem::slot_create_osl()
@@ -261,7 +249,6 @@ void MaterialCollectionItem::do_create_material(const char* model)
 
     auto_ptr<CustomEntityUI> custom_entity_ui;
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     if (strcmp(model, "disney_material") == 0)
     {
         custom_entity_ui.reset(
@@ -269,7 +256,6 @@ void MaterialCollectionItem::do_create_material(const char* model)
                 m_editor_context.m_project,
                 m_editor_context.m_settings));
     }
-#endif
 
     open_entity_editor(
         QTreeWidgetItem::treeWidget(),

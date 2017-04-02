@@ -120,9 +120,7 @@ QMenu* ObjectInstanceItem::get_single_item_context_menu() const
 
     menu->addSeparator();
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     menu->addAction("Assign New Disney Material", this, SLOT(slot_assign_new_disney_material()));
-#endif
 
     menu->addAction("Assign Materials...", this, SLOT(slot_open_material_assignment_editor()));
 
@@ -158,17 +156,13 @@ QMenu* ObjectInstanceItem::get_multiple_items_context_menu(const QList<ItemBase*
 
     menu->addSeparator();
 
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     menu->addAction("Assign New Disney Material", this, SLOT(slot_assign_new_disney_material()))
         ->setData(QVariant::fromValue(items));
-#endif
 
     add_material_assignment_menu_actions(menu, items);
 
     return menu;
 }
-
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
 
 // Friend of ObjectInstanceItem class, thus cannot be placed in anonymous namespace.
 class AssignNewDisneyMaterialAction
@@ -246,17 +240,13 @@ class AssignNewDisneyMaterialAction
     const QList<ObjectInstanceItem*>    m_items;
 };
 
-#endif // APPLESEED_WITH_DISNEY_MATERIAL
-
 void ObjectInstanceItem::slot_assign_new_disney_material()
 {
-#ifdef APPLESEED_WITH_DISNEY_MATERIAL
     m_editor_context.m_rendering_manager.schedule_or_execute(
         auto_ptr<RenderingManager::IScheduledAction>(
             new AssignNewDisneyMaterialAction(
                 m_editor_context,
                 get_action_items<ObjectInstanceItem>())));
-#endif
 }
 
 void ObjectInstanceItem::slot_open_material_assignment_editor()

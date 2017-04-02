@@ -95,7 +95,6 @@ endif ()
 # Build options.
 #--------------------------------------------------------------------------------------------------
 
-option (USE_EXTERNAL_ALEMBIC                "Use external Alembic library"                          OFF)
 option (USE_EXTERNAL_EXR                    "Use external OpenEXR library"                          OFF)
 option (USE_EXTERNAL_OIIO                   "Use external OpenImageIO library"                      OFF)
 option (USE_EXTERNAL_OSL                    "Use external OpenShadingLanguage library"              OFF)
@@ -104,14 +103,7 @@ option (USE_EXTERNAL_SEEXPR                 "Use external SeExpr library"       
 option (USE_EXTERNAL_XERCES                 "Use external Xerces library"                           OFF)
 option (USE_EXTERNAL_ZLIB                   "Use external zlib library"                             OFF)
 
-option (WITH_CLI                            "Build appleseed.cli"                                   ON)
-option (WITH_STUDIO                         "Build appleseed.studio"                                ON)
-option (WITH_TOOLS                          "Build appleseed tools"                                 ON)
 option (WITH_PYTHON                         "Build Python bindings"                                 ON)
-option (WITH_ALEMBIC                        "Build Alembic support"                                 OFF)
-option (WITH_DISNEY_MATERIAL                "Build Disney material"                                 OFF)
-option (WITH_NORMALIZED_DIFFUSION_BSSRDF    "Build Normalized Diffusion BSSRDF (patented)"          OFF)
-option (WITH_PARTIO                         "Build Partio support (used in unit tests)"             OFF)
 
 option (USE_CPP11                           "Use C++11"                                             OFF)
 option (USE_STATIC_BOOST                    "Use static Boost libraries"                            ON)
@@ -229,14 +221,6 @@ if (USE_EXTERNAL_EXR)
     find_package (OpenEXR REQUIRED)
 endif ()
 
-if (WITH_ALEMBIC)
-    add_definitions (-DAPPLESEED_WITH_ALEMBIC)
-    if (USE_EXTERNAL_ALEMBIC)
-        find_package (HDF5 REQUIRED COMPONENTS C HL)
-        find_package (Alembic REQUIRED)
-    endif ()
-endif ()
-
 if (USE_EXTERNAL_XERCES)
     add_definitions (-DAPPLESEED_WITH_EXTERNAL_XERCES)
     find_package (Xerces REQUIRED)
@@ -256,23 +240,11 @@ if (USE_EXTERNAL_OSL)
     find_package (OSL REQUIRED)
 endif ()
 
-if (WITH_DISNEY_MATERIAL)
-    add_definitions (-DAPPLESEED_WITH_DISNEY_MATERIAL)
-    if (USE_EXTERNAL_SEEXPR)
-        find_package (SeExpr REQUIRED)
-        if (WITH_STUDIO)
-            find_package (SeExprEditor REQUIRED)
-        endif ()
+if (USE_EXTERNAL_SEEXPR)
+    find_package (SeExpr REQUIRED)
+    if (WITH_STUDIO)
+        find_package (SeExprEditor REQUIRED)
     endif ()
-endif ()
-
-if (WITH_NORMALIZED_DIFFUSION_BSSRDF)
-    add_definitions (-DAPPLESEED_WITH_NORMALIZED_DIFFUSION_BSSRDF)
-endif ()
-
-if (WITH_PARTIO)
-    add_definitions (-DAPPLESEED_WITH_PARTIO)
-    find_package (Partio REQUIRED)
 endif ()
 
 
@@ -315,17 +287,6 @@ else ()
     )
 endif ()
 
-if (WITH_ALEMBIC)
-    if (USE_EXTERNAL_ALEMBIC)
-        include_directories (
-            ${HDF5_INCLUDE_DIRS}
-            ${ALEMBIC_INCLUDE_DIRS}
-        )
-    else ()
-        include_directories (${APPLESEED_DEPS_STAGE_DIR}/alembic/include)
-    endif ()
-endif ()
-
 if (USE_EXTERNAL_XERCES)
     include_directories (${XERCES_INCLUDE_DIRS})
 else ()
@@ -344,19 +305,13 @@ else ()
     include_directories (${APPLESEED_DEPS_STAGE_DIR}/osl-debug/include)
 endif ()
 
-if (WITH_DISNEY_MATERIAL)
-    if (USE_EXTERNAL_SEEXPR)
-        include_directories (${SEEXPR_INCLUDE_DIRS})
-        if (WITH_STUDIO)
-            include_directories (${SEEXPREDITOR_INCLUDE_DIRS})
-        endif ()
-    else ()
-        include_directories (${APPLESEED_DEPS_STAGE_DIR}/SeExpr-debug/include)
+if (USE_EXTERNAL_SEEXPR)
+    include_directories (${SEEXPR_INCLUDE_DIRS})
+    if (WITH_STUDIO)
+        include_directories (${SEEXPREDITOR_INCLUDE_DIRS})
     endif ()
-endif ()
-
-if (WITH_PARTIO)
-    include_directories (${PARTIO_INCLUDE_DIRS})
+else ()
+    include_directories (${APPLESEED_DEPS_STAGE_DIR}/SeExpr-debug/include)
 endif ()
 
 
@@ -583,14 +538,8 @@ endmacro ()
 add_subdirectory (src/appleseed)
 add_subdirectory (src/lz4)
 add_subdirectory (src/appleseed.shaders)
-
-if (WITH_CLI OR WITH_STUDIO OR WITH_TOOLS)
-    add_subdirectory (src/appleseed.shared)
-endif ()
-
-if (WITH_CLI)
-    add_subdirectory (src/appleseed.cli)
-endif ()
+add_subdirectory (src/appleseed.shared)
+add_subdirectory (src/appleseed.cli)
 
 if (WITH_STUDIO)
     add_subdirectory (src/appleseed.studio)
@@ -600,13 +549,11 @@ if (WITH_PYTHON)
     add_subdirectory (src/appleseed.python)
 endif ()
 
-if (WITH_TOOLS)
-    add_subdirectory (src/tools/animatecamera)
-    add_subdirectory (src/tools/convertmeshfile)
-    add_subdirectory (src/tools/dumpmetadata)
-    add_subdirectory (src/tools/makefluffy)
-    add_subdirectory (src/tools/projecttool)
-endif ()
+add_subdirectory (src/tools/animatecamera)
+add_subdirectory (src/tools/convertmeshfile)
+add_subdirectory (src/tools/dumpmetadata)
+add_subdirectory (src/tools/makefluffy)
+add_subdirectory (src/tools/projecttool)
 
 
 #--------------------------------------------------------------------------------------------------
