@@ -118,8 +118,8 @@
 #include "foundation/utility/searchpaths.h"
 #include "foundation/utility/stopwatch.h"
 #include "foundation/utility/string.h"
-#include "foundation/utility/unzipper.h"
 #include "foundation/utility/xercesc.h"
+#include "foundation/utility/zip.h"
 
 // Xerces-C++ headers.
 #include "xercesc/sax2/Attributes.hpp"
@@ -3167,7 +3167,7 @@ auto_release_ptr<Project> ProjectFileReader::read(
     if (is_builtin_project(project_filepath, project_name))
         return load_builtin(project_name.c_str());
 
-    // Handle packed projects
+    // Handle packed projects.
     string actual_project_filepath;
     if (is_zip_file(project_filepath))
     {
@@ -3181,12 +3181,11 @@ auto_release_ptr<Project> ProjectFileReader::read(
             return auto_release_ptr<Project>(0);
         }
 
-        const bf::path project_path(project_filepath);
         const string unpacked_project_directory =
-            (project_path.parent_path() / project_path.stem()).string() + ".unpacked";
+            bf::path(project_filepath).replace_extension(".unpacked").string();
 
         RENDERER_LOG_INFO(
-            "%s appears to be a packed project; unpacking to %s...,",
+            "%s appears to be a packed project; unpacking to %s...",
             project_filepath,
             unpacked_project_directory.c_str());
 
