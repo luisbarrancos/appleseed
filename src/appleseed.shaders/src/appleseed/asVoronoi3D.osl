@@ -34,7 +34,7 @@
 shader asVoronoi3D
 [[
     string as_maya_node_name = "asVoronoi3D",
-    string as_maya_classification = "appleseed/texture/3d",
+    string as_maya_classification = "drawdb/shader:rendernode/appleseed/texture/3d",
     int as_maya_type_id = 1210822
 ]]
 (
@@ -232,7 +232,7 @@ shader asVoronoi3D
 
     placement = in_placementMatrix;
 
-    point Pp = transform(placement, P);
+    point Pp = transform(placement, in_surfacePoint);
 
     float box_blending = 0.0;
 
@@ -247,9 +247,9 @@ shader asVoronoi3D
         out_outColor = in_defaultColor;
         out_outAlpha = maya_luminance(out_outColor);
     }
-    else if (in_amplitude)
+    else if (in_amplitude > 0.0)
     {
-        // Passing the output arrays directly seems not to get the arrays 
+        // Passing the output arrays directly seems not to get the arrays
         // filled, so use temporary copies for now.
 
         float tmp_features[4] = {1000, 1000, 1000, 1000};
@@ -263,7 +263,7 @@ shader asVoronoi3D
 
         for (int i = 0; i < in_octaves; ++i)
         {
-            if (!amplitude)
+            if (amplitude > 0.0)
             {
                 break;
             }
@@ -301,7 +301,7 @@ shader asVoronoi3D
 
         // Basic feature mode outputs, for more the user can use the
         // extra output parameters directly.
-        
+
         if (in_featuresMode == 0)
         {
             out_outAlpha = out_outFeatures[0];

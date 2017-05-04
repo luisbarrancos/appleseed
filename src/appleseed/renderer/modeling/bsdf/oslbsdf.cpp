@@ -36,10 +36,14 @@
 #include "renderer/kernel/shading/shadingcontext.h"
 #include "renderer/kernel/shading/shadingpoint.h"
 #include "renderer/modeling/bsdf/alsurfacelayerbrdf.h"
+#include "renderer/modeling/bsdf/blinnbrdf.h"
 #include "renderer/modeling/bsdf/bsdf.h"
 #include "renderer/modeling/bsdf/bsdffactoryregistrar.h"
 #include "renderer/modeling/bsdf/bsdfwrapper.h"
+#include "renderer/modeling/bsdf/diffusebtdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
+#include "renderer/modeling/bsdf/glossybrdf.h"
+#include "renderer/modeling/bsdf/metalbrdf.h"
 #include "renderer/modeling/bsdf/ibsdffactory.h"
 #include "renderer/modeling/scene/assembly.h"
 #include "renderer/utility/paramarray.h"
@@ -87,31 +91,39 @@ namespace
             m_ashikhmin_shirley_brdf =
                 create_and_register_bsdf(AshikhminShirleyID, "ashikhmin_brdf");
 
+            m_blinn_brdf = create_and_register_blinn_brdf();
+
             m_diffuse_btdf = create_and_register_diffuse_btdf();
 
             m_disney_brdf =
                 create_and_register_bsdf(DisneyID, "disney_brdf");
 
+            m_glass_beckmann_bsdf =
+                create_and_register_glass_bsdf(GlassBeckmannID, "beckmann");
+
             m_glass_ggx_bsdf =
                 create_and_register_glass_bsdf(GlassGGXID, "ggx");
 
-            m_glass_beckmann_bsdf =
-                create_and_register_glass_bsdf(GlassBeckmannID, "beckmann");
+            m_glass_std_bsdf =
+                create_and_register_glass_bsdf(GlassSTDID, "std");
 
             m_glossy_beckmann_brdf =
                 create_and_register_glossy_brdf(GlossyBeckmannID, "beckmann");
 
-            m_glossy_blinn_brdf =
-                create_and_register_glossy_brdf(GlossyBlinnID, "blinn");
-
             m_glossy_ggx_brdf =
                 create_and_register_glossy_brdf(GlossyGGXID, "ggx");
+
+            m_glossy_std_brdf =
+                create_and_register_glossy_brdf(GlossySTDID, "std");
 
             m_metal_beckmann_brdf =
                 create_and_register_metal_brdf(MetalBeckmannID, "beckmann");
 
             m_metal_ggx_brdf =
                 create_and_register_metal_brdf(MetalGGXID, "ggx");
+
+            m_metal_std_brdf =
+                create_and_register_metal_brdf(MetalSTDID, "std");
 
             m_orennayar_brdf =
                 create_and_register_bsdf(OrenNayarID, "orennayar_brdf");
@@ -340,15 +352,18 @@ namespace
         BSDF*                       m_all_bsdfs[NumClosuresIDs];
         auto_release_ptr<BSDF>      m_alsurface_layer_brdf;
         auto_release_ptr<BSDF>      m_ashikhmin_shirley_brdf;
+        auto_release_ptr<BSDF>      m_blinn_brdf;
         auto_release_ptr<BSDF>      m_diffuse_btdf;
         auto_release_ptr<BSDF>      m_disney_brdf;
         auto_release_ptr<BSDF>      m_glass_beckmann_bsdf;
         auto_release_ptr<BSDF>      m_glass_ggx_bsdf;
+        auto_release_ptr<BSDF>      m_glass_std_bsdf;
         auto_release_ptr<BSDF>      m_glossy_beckmann_brdf;
-        auto_release_ptr<BSDF>      m_glossy_blinn_brdf;
         auto_release_ptr<BSDF>      m_glossy_ggx_brdf;
+        auto_release_ptr<BSDF>      m_glossy_std_brdf;
         auto_release_ptr<BSDF>      m_metal_beckmann_brdf;
         auto_release_ptr<BSDF>      m_metal_ggx_brdf;
+        auto_release_ptr<BSDF>      m_metal_std_brdf;
         auto_release_ptr<BSDF>      m_orennayar_brdf;
         auto_release_ptr<BSDF>      m_sheen_brdf;
 
@@ -360,6 +375,15 @@ namespace
                 BSDFFactoryRegistrar().lookup(model)->create(model, ParamArray());
 
             m_all_bsdfs[cid] = bsdf.get();
+            return bsdf;
+        }
+
+        auto_release_ptr<BSDF> create_and_register_blinn_brdf()
+        {
+            auto_release_ptr<BSDF> bsdf =
+                BlinnBRDFFactory().create("blinn_brdf", ParamArray());
+
+            m_all_bsdfs[BlinnID] = bsdf.get();
             return bsdf;
         }
 

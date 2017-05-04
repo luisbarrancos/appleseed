@@ -173,16 +173,15 @@ shader as_maya_lambert
         color transparency = in_transparency;
 
         // Shadow attenuation: 0=constant, 1=fake caustics.
-        if (in_refractions && in_transparency)
+        if (in_refractions && in_transparency != 0)
         {
             transparency *= mix(
                 transparency,
                 abs(dot(-normalize(I), normalize(in_normalCamera))),
-                in_shadowAttenuation
-                );
+                in_shadowAttenuation);
         }
 
-        if (as_max_component(transparency) > 0.0)
+        if (transparency != 0)
         {
             out_outColor = transparency * transparent();
         }
@@ -199,7 +198,7 @@ shader as_maya_lambert
 
         color opacity = 1.0 - in_transparency;
 
-        if (in_color)
+        if (in_color != 0)
         {
             diffuse_term = opacity * in_diffuse * in_color * diffuse(Nn);
 
@@ -207,7 +206,7 @@ shader as_maya_lambert
                 in_color * translucent(Nn);
         }
 
-        if (raytype("light") && in_incandescence)
+        if (raytype("light") && in_incandescence != 0)
         {
             incandescence_term = opacity * in_incandescence * emission();
         }
@@ -226,7 +225,7 @@ shader as_maya_lambert
 
             opacity = 1.0;
         }
-        else if (as_max_component(in_transparency) > 0.0)
+        else if (in_transparency != 0)
         {
             transparency_term = in_transparency * transparent();
         }

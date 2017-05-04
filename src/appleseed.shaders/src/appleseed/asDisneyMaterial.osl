@@ -31,7 +31,7 @@
 shader asDisneyMaterial
 [[
     string as_maya_node_name = "asDisneyMaterial",
-    string as_maya_classification = "appleseed/surface:swatch/appleseedRenderSwatch",
+    string as_maya_classification = "drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch",
     string help = "Disney material",
     int as_maya_type_id = 1210819
 ]]
@@ -220,7 +220,7 @@ shader asDisneyMaterial
         string widget = "slider",
         string label = "Ray Depth",
         string page = "Advanced Parameters"
-    ]],    
+    ]],
     vector Tn = vector(0)
     [[
         int lockgeom = 0,
@@ -260,13 +260,13 @@ shader asDisneyMaterial
         normal Nn = normalize(in_normalCamera);
         vector tangent;
 
-        if (in_anisotropyAmount)
+        if (in_anisotropyAmount > 0.0)
         {
             if (isconnected(in_anisotropyVectorMap))
             {
                 vector vector_map = normalize(
                     (vector) in_anisotropyVectorMap * 2.0 - 1.0);
-                
+
                 tangent = normalize(
                     vector_map[0] * Tn +
                     vector_map[1] * Bn +
@@ -277,7 +277,7 @@ shader asDisneyMaterial
                 tangent = Tn;
             }
 
-            if (in_anisotropyAngle)
+            if (in_anisotropyAngle > 0.0)
             {
                 tangent = rotate(
                     tangent,
