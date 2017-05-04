@@ -83,11 +83,14 @@ bool uses_alpha_mapping(const MaterialArray& materials)
     {
         if (materials[i])
         {
-            if (materials[i]->has_alpha_map())
-                return true;
-
             if (const ShaderGroup* sg = materials[i]->get_uncached_osl_surface())
-                return sg->has_transparency();
+            {
+                if (sg->has_transparency())
+                    return true;
+            }
+
+            if (materials[i]->has_alpha_map() && !materials[i]->has_uniform_alpha_map_value_of_one())
+                return true;
         }
     }
 
@@ -197,11 +200,11 @@ const char* ObjectInstance::get_object_name() const
 
 bool ObjectInstance::is_in_same_sss_set(const ObjectInstance& other) const
 {
-    // If it is the same object instance, sss set is also the same.
+    // If it is the same object instance, the SSS set is also the same.
     if (other.get_uid() == get_uid())
         return true;
 
-    // Empty identifier indicates that object instance belongs to its individual SSS set.
+    // An empty identifier indicates that the object instance belongs to its own SSS set.
     if (impl->m_sss_set_identifier.empty() || other.impl->m_sss_set_identifier.empty())
         return false;
 
@@ -459,7 +462,11 @@ bool ObjectInstance::on_frame_begin(
 
     const EntityDefMessageContext context("object instance", this);
 
-    if (uses_alpha_mapping())
+    const bool uses_materials_alpha_mapping =
+        renderer::uses_alpha_mapping(m_back_materials) ||
+        renderer::uses_alpha_mapping(m_front_materials);
+
+    if (uses_materials_alpha_mapping)
     {
         if (m_front_materials != m_back_materials)
         {

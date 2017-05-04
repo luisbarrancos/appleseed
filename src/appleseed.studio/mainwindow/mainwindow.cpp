@@ -451,20 +451,19 @@ void MainWindow::build_toolbar()
     //
     // File actions.
     //
-
-    m_action_new_project = new QAction(load_icons("project_new"), "New Project", this);
+    m_action_new_project = new QAction(load_icons("project_new"), combine_name_and_shortcut("New Project", m_ui->action_file_new_project->shortcut()), this);
     connect(m_action_new_project, SIGNAL(triggered()), SLOT(slot_new_project()));
     m_ui->main_toolbar->addAction(m_action_new_project);
 
-    m_action_open_project = new QAction(load_icons("project_open"), "Open Project...", this);
+    m_action_open_project = new QAction(load_icons("project_open"), combine_name_and_shortcut("Open Project...", m_ui->action_file_open_project->shortcut()), this);
     connect(m_action_open_project, SIGNAL(triggered()), SLOT(slot_open_project()));
     m_ui->main_toolbar->addAction(m_action_open_project);
 
-    m_action_save_project = new QAction(load_icons("project_save") , "Save Project", this);
+    m_action_save_project = new QAction(load_icons("project_save") , combine_name_and_shortcut("Save Project", m_ui->action_file_save_project->shortcut()), this);
     connect(m_action_save_project, SIGNAL(triggered()), SLOT(slot_save_project()));
     m_ui->main_toolbar->addAction(m_action_save_project);
 
-    m_action_reload_project = new QAction(load_icons("project_reload"), "Reload Project", this);
+    m_action_reload_project = new QAction(load_icons("project_reload"), combine_name_and_shortcut("Reload Project", m_ui->action_file_reload_project->shortcut()), this);
     connect(m_action_reload_project, SIGNAL(triggered()), SLOT(slot_reload_project()));
     m_ui->main_toolbar->addAction(m_action_reload_project);
 
@@ -478,20 +477,19 @@ void MainWindow::build_toolbar()
     //
     // Rendering actions.
     //
-
-    m_action_start_interactive_rendering = new QAction(load_icons("rendering_start_interactive"), "Start Interactive Rendering", this);
+    m_action_start_interactive_rendering = new QAction(load_icons("rendering_start_interactive"), combine_name_and_shortcut("Start Interactive Rendering", m_ui->action_rendering_start_interactive_rendering->shortcut()), this);
     connect(m_action_start_interactive_rendering, SIGNAL(triggered()), SLOT(slot_start_interactive_rendering()));
     m_ui->main_toolbar->addAction(m_action_start_interactive_rendering);
 
-    m_action_start_final_rendering = new QAction(load_icons("rendering_start_final"), "Start Final Rendering", this);
+    m_action_start_final_rendering = new QAction(load_icons("rendering_start_final"), combine_name_and_shortcut("Start Final Rendering", m_ui->action_rendering_start_final_rendering->shortcut()), this);
     connect(m_action_start_final_rendering, SIGNAL(triggered()), SLOT(slot_start_final_rendering()));
     m_ui->main_toolbar->addAction(m_action_start_final_rendering);
 
-    m_action_stop_rendering = new QAction(load_icons("rendering_stop"), "Stop Rendering", this);
+    m_action_stop_rendering = new QAction(load_icons("rendering_stop"), combine_name_and_shortcut("Stop Rendering", m_ui->action_rendering_stop_rendering->shortcut()), this);
     connect(m_action_stop_rendering, SIGNAL(triggered()), &m_rendering_manager, SLOT(slot_abort_rendering()));
     m_ui->main_toolbar->addAction(m_action_stop_rendering);
 
-    m_action_rendering_settings = new QAction(load_icons("rendering_settings"), "Rendering Settings...", this);
+    m_action_rendering_settings = new QAction(load_icons("rendering_settings"), combine_name_and_shortcut("Rendering Settings...", m_ui->action_rendering_rendering_settings->shortcut()), this);
     connect(m_action_rendering_settings, SIGNAL(triggered()), SLOT(slot_show_rendering_settings_window()));
     m_ui->main_toolbar->addAction(m_action_rendering_settings);
 }
@@ -1242,32 +1240,21 @@ void MainWindow::slot_save_project()
 void MainWindow::slot_save_project_as()
 {
     assert(m_project_manager.is_project_open());
-    do_save_project(
-        ProjectDialogFilterAllProjects |
-        ProjectDialogFilterPlainProjects |
-        ProjectDialogFilterPackedProjects);
-}
 
-void MainWindow::slot_pack_project_as()
-{
-    assert(m_project_manager.is_project_open());
-    do_save_project(ProjectDialogFilterPackedProjects);
-}
-
-void MainWindow::do_save_project(const int filter)
-{
     QString filepath =
         get_save_filename(
             this,
             "Save As...",
-            get_filter_string(filter),
+            get_filter_string(ProjectDialogFilterPlainProjects),
             m_settings,
             SETTINGS_FILE_DIALOG_PROJECTS);
 
     if (!filepath.isEmpty())
     {
-        if (QFileInfo(filepath).suffix().isEmpty())
-            filepath += get_extension(m_settings, SETTINGS_FILE_DIALOG_PROJECTS);
+        const QString Extension = "appleseed";
+
+        if (QFileInfo(filepath).suffix() != Extension)
+            filepath += "." + Extension;
 
         filepath = QDir::toNativeSeparators(filepath);
 
@@ -1281,6 +1268,31 @@ void MainWindow::do_save_project(const int filter)
 
         update_recent_files_menu(filepath);
         update_workspace();
+    }
+}
+
+void MainWindow::slot_pack_project_as()
+{
+    assert(m_project_manager.is_project_open());
+
+    QString filepath =
+        get_save_filename(
+            this,
+            "Pack As...",
+            get_filter_string(ProjectDialogFilterPackedProjects),
+            m_settings,
+            SETTINGS_FILE_DIALOG_PROJECTS);
+
+    if (!filepath.isEmpty())
+    {
+        const QString Extension = "appleseedz";
+
+        if (QFileInfo(filepath).suffix() != Extension)
+            filepath += "." + Extension;
+
+        filepath = QDir::toNativeSeparators(filepath);
+
+        m_project_manager.pack_project_as(filepath.toAscii().constData());
     }
 }
 
@@ -1516,6 +1528,7 @@ namespace
             Project&        project) APPLESEED_OVERRIDE
         {
             project.get_frame()->reset_crop_window();
+
             m_attribute_editor->refresh();
         }
 
@@ -1554,6 +1567,7 @@ namespace
                 AABB2i(
                     Vector2i(x0, y0),
                     Vector2i(x1, y1)));
+
             m_attribute_editor->refresh();
         }
 

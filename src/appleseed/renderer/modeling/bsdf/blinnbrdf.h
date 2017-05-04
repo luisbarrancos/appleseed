@@ -5,7 +5,7 @@
 //
 // This software is released under the MIT license.
 //
-// Copyright (c) 2017 Andrei Ivashchenko, The appleseedhq Organization
+// Copyright (c) 2017 Esteban Tovagliari, The appleseedhq Organization
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,21 +26,61 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_STUDIO_MAINWINDOW_PROJECT_ENTITYVALUEPROVIDER_H
-#define APPLESEED_STUDIO_MAINWINDOW_PROJECT_ENTITYVALUEPROVIDER_H
+#ifndef APPLESEED_RENDERER_MODELING_BSDF_BLINNBRDF_H
+#define APPLESEED_RENDERER_MODELING_BSDF_BLINNBRDF_H
+
+// appleseed.renderer headers.
+#include "renderer/global/globaltypes.h"
+#include "renderer/modeling/bsdf/ibsdffactory.h"
+#include "renderer/modeling/input/inputarray.h"
+
+// appleseed.foundation headers.
+#include "foundation/platform/compiler.h"
+#include "foundation/utility/autoreleaseptr.h"
+
+// appleseed.main headers.
+#include "main/dllsymbol.h"
 
 // Forward declarations.
-namespace foundation { class Dictionary; }
+namespace foundation    { class Dictionary; }
+namespace foundation    { class DictionaryArray; }
+namespace renderer      { class BSDF; }
+namespace renderer      { class ParamArray; }
 
-namespace appleseed {
-namespace studio {
+namespace renderer
+{
 
-class IEntityValueProvider {
-  public:
-    virtual const foundation::Dictionary get_values() = 0;
+//
+// Blinn BRDF input values.
+//
+
+APPLESEED_DECLARE_INPUT_VALUES(BlinnBRDFInputValues)
+{
+    float       m_exponent;
+    float       m_ior;
+
+    struct Precomputed
+    {
+        float   m_outside_ior;
+    };
+
+    Precomputed m_precomputed;
 };
 
-}
-}
 
-#endif  // !APPLESEED_STUDIO_MAINWINDOW_PROJECT_ENTITYVALUEPROVIDER_H
+//
+// Blinn BRDF factory.
+//
+
+class APPLESEED_DLLSYMBOL BlinnBRDFFactory
+{
+  public:
+    // Create a new BSDF instance.
+    foundation::auto_release_ptr<BSDF> create(
+        const char*         name,
+        const ParamArray&   params) const;
+};
+
+}       // namespace renderer
+
+#endif  // !APPLESEED_RENDERER_MODELING_BSDF_BLINNBRDF_H

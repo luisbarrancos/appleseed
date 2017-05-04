@@ -29,11 +29,13 @@
 #ifndef AS_MATERIAL_HELPERS_H
 #define AS_MATERIAL_HELPERS_H
 
+#define IMPORTANCE_THRESHOLD    1.0e-5
+
 float microfacet_roughness(float roughness, float depth_scale)
 {
     float out = roughness;
 
-    if (depth_scale > 1)
+    if (depth_scale > 1.0)
     {
         int ray_depth;
         getattribute("path:ray_depth", ray_depth);

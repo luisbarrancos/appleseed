@@ -5,8 +5,7 @@
 //
 // This software is released under the MIT license.
 //
-// Copyright (c) 2010-2013 Francois Beaune, Jupiter Jazz Limited
-// Copyright (c) 2014-2017 Francois Beaune, The appleseedhq Organization
+// Copyright (c) 2017 Andrei Ivashchenko, The appleseedhq Organization
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,45 +26,22 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_FOUNDATION_MESH_ALEMBICMESHFILEREADER_H
-#define APPLESEED_FOUNDATION_MESH_ALEMBICMESHFILEREADER_H
-
-// appleseed.foundation headers.
-#include "foundation/mesh/imeshfilereader.h"
-#include "foundation/platform/compiler.h"
-
-// Standard headers.
-#include <string>
+#ifndef APPLESEED_STUDIO_MAINWINDOW_PROJECT_IENTITYVALUEPROVIDER_H
+#define APPLESEED_STUDIO_MAINWINDOW_PROJECT_IENTITYVALUEPROVIDER_H
 
 // Forward declarations.
-namespace foundation    { class IMeshBuilder; }
+namespace foundation { class Dictionary; }
 
-namespace foundation
-{
+namespace appleseed {
+namespace studio {
 
-//
-// Alembic mesh file reader.
-//
-// References:
-//
-//   http://www.alembic.io
-//   http://code.google.com/p/alembic/
-//
-
-class AlembicMeshFileReader
-  : public IMeshFileReader
+class IEntityValueProvider
 {
   public:
-    // Constructor.
-    explicit AlembicMeshFileReader(const std::string& filename);
-
-    // Read a mesh.
-    virtual void read(IMeshBuilder& builder) APPLESEED_OVERRIDE;
-
-  private:
-    const std::string m_filename;
+    virtual foundation::Dictionary get_values() const = 0;
 };
 
-}       // namespace foundation
+}       // namespace studio
+}       // namespace appleseed
 
-#endif  // !APPLESEED_FOUNDATION_MESH_ALEMBICMESHFILEREADER_H
+#endif  // !APPLESEED_STUDIO_MAINWINDOW_PROJECT_IENTITYVALUEPROVIDER_H

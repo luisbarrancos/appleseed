@@ -29,7 +29,7 @@
 shader asGlass
 [[
     string as_maya_node_name = "asGlass",
-    string as_maya_classification = "appleseed/surface:swatch/appleseedRenderSwatch",
+    string as_maya_classification = "drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch",
     string help = "Glass material",
     int as_maya_type_id = 1210820
 ]]
@@ -223,7 +223,7 @@ shader asGlass
         normal Nn = normalize(in_normalCamera);
         vector tangent;
 
-        if (in_anisotropyAmount)
+        if (in_anisotropyAmount > 0.0)
         {
             if (isconnected(in_anisotropyVectorMap))
             {
@@ -240,7 +240,7 @@ shader asGlass
                 tangent = Tn;
             }
 
-            if (in_anisotropyAngle)
+            if (in_anisotropyAngle > 0.0)
             {
                 tangent = rotate(
                     tangent,
@@ -260,6 +260,7 @@ shader asGlass
             in_reflectionTint,
             in_refractionTint,
             in_roughness,
+            0.5,    // Highlight falloff.
             in_anisotropyAmount,
             in_ior,
             in_volumeTransmittance,

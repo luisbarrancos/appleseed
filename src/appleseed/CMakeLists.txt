@@ -318,12 +318,6 @@ set (foundation_mesh_sources
     foundation/mesh/objmeshfilewriter.cpp
     foundation/mesh/objmeshfilewriter.h
 )
-if (WITH_ALEMBIC)
-    list (APPEND foundation_mesh_sources
-        foundation/mesh/alembicmeshfilereader.cpp
-        foundation/mesh/alembicmeshfilereader.h
-    )
-endif ()
 list (APPEND appleseed_sources
     ${foundation_mesh_sources}
 )
@@ -1281,6 +1275,8 @@ set (renderer_modeling_bsdf_sources
     renderer/modeling/bsdf/ashikhminbrdf.cpp
     renderer/modeling/bsdf/ashikhminbrdf.h
     renderer/modeling/bsdf/backfacingpolicy.h
+    renderer/modeling/bsdf/blinnbrdf.cpp
+    renderer/modeling/bsdf/blinnbrdf.h
     renderer/modeling/bsdf/bsdf.cpp
     renderer/modeling/bsdf/bsdf.h
     renderer/modeling/bsdf/bsdfblend.cpp
@@ -1879,11 +1875,6 @@ endif ()
 link_against_platform (appleseed)
 link_against_libpng (appleseed)
 link_against_xercesc (appleseed)
-
-if (WITH_ALEMBIC)
-    link_against_alembic (appleseed)
-    link_against_hdf5 (appleseed)
-endif ()
 
 link_against_openexr (appleseed)
 link_against_zlib (appleseed)

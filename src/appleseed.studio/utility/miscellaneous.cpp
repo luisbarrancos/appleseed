@@ -147,6 +147,11 @@ QString make_app_path(const QString& path)
     return combine_paths(Application::get_root_path(), path);
 }
 
+QString combine_name_and_shortcut(const QString& name, const QKeySequence& shortcut)
+{
+    return name + " (" + shortcut.toString(QKeySequence::NativeText) + ")";
+}
+
 bool file_exists(const QString& path)
 {
     const QFileInfo info(path);
@@ -181,19 +186,6 @@ namespace
     {
         settings.insert_path(key.toAscii().constData(), value);
     }
-}
-
-QString get_extension(ParamArray& settings, const QString& target_dialog)
-{
-    QString filter = get_value(settings, target_dialog + SETTINGS_SELECTED_FILTER);
-
-    const int ext_start = filter.lastIndexOf('(') + 2;
-    const int ext_end = filter.lastIndexOf(')');
-
-    if (ext_start != string::npos && ext_end != string::npos && ext_start < ext_end)
-        return filter.mid(ext_start, ext_end - ext_start);
-    else
-        return QString("");
 }
 
 QString get_open_filename(

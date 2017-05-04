@@ -45,6 +45,9 @@
 
 matrix inverse(matrix m) { return 1 / m; }
 
+float min(color C) { return min(C[0], min(C[1], C[2])); }
+float max(color C) { return max(C[0], max(C[1], C[2])); }
+
 closure color mix(closure color A, closure color B, float w)
 {
     return (1.0 - w) * A + w * B;
@@ -62,22 +65,14 @@ closure color as_glossy(
     normal  N,
     vector  T,
     float   roughness,
+    float   highlight_falloff,
     float   anisotropic,
     float   ior) BUILTIN;
 
-closure color as_glossy_blinn(
+closure color as_blinn(
     normal  N,
     float   exponent,
-    float   ior)
-{
-    return as_glossy(
-        "blinn",
-        N,
-        vector(0),
-        exponent,
-        0,
-        ior);
-}
+    float   ior) BUILTIN;
 
 closure color as_metal(
     string  distribution,
@@ -86,6 +81,7 @@ closure color as_metal(
     color   normal_reflectance,
     color   edge_tint,
     float   roughness,
+    float   highlight_falloff,
     float   anisotropic) BUILTIN;
 
 closure color as_glass(
@@ -96,6 +92,7 @@ closure color as_glass(
     color   reflection_tint,
     color   refraction_tint,
     float   roughness,
+    float   highlight_falloff,
     float   anisotropic,
     float   ior,
     color   volume_transmittance,

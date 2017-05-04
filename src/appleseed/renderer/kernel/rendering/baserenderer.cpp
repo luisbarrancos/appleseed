@@ -36,6 +36,7 @@
 #include "renderer/kernel/shading/closures.h"
 #include "renderer/modeling/project/project.h"
 #include "renderer/modeling/scene/scene.h"
+#include "renderer/modeling/scene/visibilityflags.h"
 
 // appleseed.foundation headers.
 #include "foundation/platform/compiler.h"
@@ -76,11 +77,7 @@ BaseRenderer::BaseRenderer(
     m_renderer_services = new RendererServices(m_project, *m_texture_system);
 
     RENDERER_LOG_DEBUG("creating osl shading system...");
-#if OSL_LIBRARY_VERSION_CODE >= 10700
     m_shading_system = new OSL::ShadingSystem(
-#else
-    m_shading_system = OSL::ShadingSystem::create(
-#endif
         m_renderer_services,
         m_texture_system,
         m_error_handler);
@@ -108,17 +105,12 @@ BaseRenderer::~BaseRenderer()
 {
     RENDERER_LOG_DEBUG("destroying osl shading system...");
     m_project.get_scene()->release_optimized_osl_shader_groups();
-#if OSL_LIBRARY_VERSION_CODE >= 10700
     delete m_shading_system;
-#else
-    OSL::ShadingSystem::destroy(m_shading_system);
-#endif
-
     delete m_renderer_services;
 
     const string stats = m_texture_system->getstats();
-    const string trimmed_stats = trim_right(stats, "\r\n");
-    RENDERER_LOG_DEBUG("oiio: %s", trimmed_stats.c_str());
+    const string modified_stats = prefix_all_lines(trim_both(stats), "oiio: ");
+    RENDERER_LOG_DEBUG("%s", modified_stats.c_str());
 
     RENDERER_LOG_DEBUG("destroying oiio texture system...");
     OIIO::TextureSystem::destroy(m_texture_system);
