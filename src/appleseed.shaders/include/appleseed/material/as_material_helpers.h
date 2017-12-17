@@ -176,4 +176,42 @@ float dielectricConductorFresnel(
     return 0.5 * (Rp + Rs);
 }
 
+//
+// Compute anisotropy direction from vector map, or explicit vector, with
+// potentially user set rotation.
+//
+
+vector get_anisotropy_direction(
+    vector Tn,
+    vector Bn,
+    normal Nn,
+    vector explicit_direction,
+    color vector_map,
+    float rotation_angle,
+    int mode)
+{
+    vector tangent = Tn;
+
+    if (mode == 0)
+    {
+        if (isconnected(vector_map))
+        {
+            vector map = normalize((vector) vector_map * 2.0 - 1.0);
+
+            tangent = normalize(map[0] * Tn + map[1] * Bn + map[2] * Nn);
+        }
+    }
+    else
+    {
+        tangent = explicit_direction;
+    }
+
+    if (rotation_angle > 0.0)
+    {
+        tangent = rotate(tangent, rotation_angle * M_2PI, point(0), point(Nn));
+    }
+
+    return tangent;
+}
+
 #endif // !AS_MATERIAL_HELPERS_H
