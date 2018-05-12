@@ -64,10 +64,10 @@ shader as_subsurface
         string label = "Reflectance",
         string page = "Subsurface"
     ]],
-    float in_sss_amount = 1.0
+    float in_sss_weight = 1.0
     [[
-        string as_maya_attribute_name = "sssAmount",
-        string as_maya_attribute_short_name = "ssa",
+        string as_maya_attribute_name = "sssWeight",
+        string as_maya_attribute_short_name = "ssw",
         float min = 0.0,
         float max = 1.0,
         string label = "Subsurface Weight",
@@ -103,9 +103,46 @@ shader as_subsurface
         int as_blender_input_socket = 0,
         int gafferNoduleLayoutVisible = 0,
         string label = "Volume Anisotropy",
-        string page = "Subsurface.Advanced",
+        string page = "Subsurface",
         string help = "Scattering anisotropy, with 0.0 being isotropic, negative values resulting in back scattering, and positive values in forward scattering. Valid only for the random walk SSS profile.",
         int divider = 1
+    ]],
+    float in_specular_weight = 1.0
+    [[
+        string as_maya_attribute_name = "specularWeight",
+        string as_maya_attribute_short_name = "slw",
+        float min = 0.0,
+        float max = 1.0,
+        string label = "Specular Weight",
+        string page = "Specular"
+    ]],
+    float in_specular_roughness = 0.3
+    [[
+        string as_maya_attribute_name = "specularRoughness",
+        string as_maya_attribute_short_name = "sro",
+        float min = 0.0,
+        float max = 1.0,
+        string label = "Specular Roughness",
+        string page = "Specular"
+    ]],
+    float in_specular_falloff = 0.3
+    [[
+        string as_maya_attribute_name = "specularFalloff",
+        string as_maya_attribute_short_name = "sro",
+        float min = 0.0,
+        float max = 1.0,
+        string label = "Specular Roughness",
+        string page = "Specular"
+    ]],
+    float in_ior = 1.41
+    [[
+        string as_maya_attribute_name = "ior",
+        string as_maya_attribute_short_name = "io",
+        float min = 1.0,
+        float softmax = 3.0,
+        string label = "Index of Refraction",
+        string page = "Fresnel",
+        string help = "Index of refraction, affecting both the subsurface and specular terms."
     ]],
     int in_sss_maximum_ray_depth = 2
     [[
@@ -122,96 +159,7 @@ shader as_subsurface
         int as_blender_input_socket = 0,
         int gafferNoduleLayoutVisible = 0
     ]],
-    float in_ior = 1.41
-    [[
-        string as_maya_attribute_name = "ior",
-        string as_maya_attribute_short_name = "io",
-        float min = 1.0,
-        float softmax = 3.0,
-        string label = "Index of Refraction",
-        string page = "Fresnel"
-    ]],
-    float in_fresnel_weight = 1.0
-    [[
-        string as_maya_attribute_name = "fresnelWeight",
-        string as_maya_attribute_short_name = "fwe",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Fresnel Weight",
-        string page = "Fresnel.Advanced",
-        string help = "A value of 0.0 disables scaling the subsurface scattering term by the Fresnel. It should match the specular weight ideally."
-    ]],
-    float in_specular_weight = 1.0
-    [[
-        string as_maya_attribute_name = "specularWeight",
-        string as_maya_attribute_short_name = "swe",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Specular Weight",
-        string page = "Specular"
-    ]],
-    float in_specular_roughness = 0.3
-    [[
-        string as_maya_attribute_name = "specularRoughness",
-        string as_maya_attribute_short_name = "sro",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Specular Roughness",
-        string page = "Specular"
-    ]],
-    float in_anisotropy_amount = 0.0
-    [[
-        string as_maya_attribute_name = "anisotropyAmount",
-        string as_maya_attribute_short_name = "anw",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Anisotropy Amount",
-        string page = "Specular.Anisotropy"
-    ]],
-    float in_anisotropy_angle = 0.0
-    [[
-        string as_maya_attribute_name = "anisotropyAngle",
-        string as_maya_attribute_short_name = "ana",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Anisotropy Angle",
-        string page = "Specular.Anisotropy",
-        string help = "Anisotropy angle in [0,1], mapping to [0,360] degrees.",
-        int divider = 1
-    ]],
-    int in_anisotropy_mode = 0
-    [[
-        string as_maya_attribute_name = "anisotropyMode",
-        string as_maya_attribute_short_name = "anm",
-        string widget = "mapper",
-        string options = "Anisotropy Map:0|Explicit Vector:1",
-        string label = "Anisotropy Mode",
-        string page = "Specular.Anisotropy",
-        string help = "Use tangent vector field map, or explicit vector.",
-        int as_maya_attribute_connectable = 0,
-        int as_maya_attribute_keyable = 0,
-        int as_maya_attribute_hidden = 1,
-        int as_blender_input_socket = 0,
-        int gafferNoduleLayoutVisible = 0,
-        int divider = 1
-    ]],
-    color in_anisotropy_map = color(0)
-    [[
-        string as_maya_attribute_name = "anisotropyMap",
-        string as_maya_attribute_short_name = "ama",
-        string label = "Anisotropy Vector Map",
-        string page = "Specular.Anisotropy",
-        string help = "Anisotropy vector map, with XY encoded in RG channels.",
-        int divider = 1
-    ]],
-    vector in_anisotropy_direction = vector(0)
-    [[
-        string as_maya_attribute_name = "anisotropyDirection",
-        string as_maya_attribute_short_name = "and",
-        string label = "Anisotropy Vector",
-        string page = "Specular.Anisotropy",
-        string help = "Explicit anisotropy vector, such as the vector output by a tangent field node."
-    ]],
+
     normal in_bump_normal = N
     [[
         string as_maya_attribute_name = "normalCamera",
@@ -251,22 +199,6 @@ shader as_subsurface
         string as_maya_attribute_short_name = "mac",
         string label = "Matte Opacity Color",
         string page = "Matte Opacity",
-        int as_blender_input_socket = 0,
-        int gafferNoduleLayoutVisible = 0
-    ]],
-    vector Tn = vector(0)
-    [[
-        int lockgeom = 0,
-        int as_maya_attribute_hidden = 1,
-        string widget = "null",
-        int as_blender_input_socket = 0,
-        int gafferNoduleLayoutVisible = 0
-    ]],
-    vector Bn = vector(0)
-    [[
-        int lockgeom = 0,
-        int as_maya_attribute_hidden = 1,
-        string widget = "null",
         int as_blender_input_socket = 0,
         int gafferNoduleLayoutVisible = 0
     ]],
@@ -330,20 +262,38 @@ shader as_subsurface
 
     normal Nn = normalize(in_bump_normal);
 
-    if (in_sss_amount * max(in_color) > 0.0)
+    if (in_sss_weight * max(in_color) > 0.0)
     {
-        color albedo = clamp(in_sss_amount * in_color, 0.01, 0.99);
+        color albedo = clamp(in_sss_weight * in_color, 0.01, 0.99);
 
         if (sss_profile == "randomwalk")
         {
-            out_outColor += as_subsurface(
-                sss_profile,
-                Nn,
-                albedo,
-                in_sss_mfp_scale * in_sss_mfp,
-                in_ior,
-                "fresnel_weight", in_fresnel_weight,
-                "volume_anisotropy", in_volume_anisotropy);
+            if (in_specular_weight > 0.0)
+            {
+                out_outColor += in_specular_weight *
+                    as_randomwalk_glass(
+                        Nn,
+                        albedo,
+                        in_sss_mfp_scale * in_sss_mfp,
+                        in_ior,
+                        in_specular_roughness,
+                        in_specular_falloff,
+                        "fresnel_weight", 1.0,
+                        "volume_anisotropy", in_volume_anisotropy
+                        );
+            }
+            if (in_specular_weight < 1.0)
+            {
+                out_outColor += (1.0 - in_specular_weight) *
+                    as_subsurface(
+                        sss_profile,
+                        Nn,
+                        albedo,
+                        in_sss_mfp_scale * in_sss_mfp,
+                        in_ior,
+                        "fresnel_weight", 1.0,
+                        "volume_anisotropy", in_volume_anisotropy);
+            }
         }
         else
         {
@@ -353,52 +303,21 @@ shader as_subsurface
                 albedo,
                 in_sss_mfp_scale * in_sss_mfp,
                 in_ior,
-                "fresnel_weight", in_fresnel_weight);
-        }
-    }
+                "fresnel_weight", 1.0);
 
-    if (in_specular_weight > 0.0)
-    {
-        vector tangent = Tn;
 
-        if (in_anisotropy_amount > 0.0)
-        {
-            if (in_anisotropy_mode == 0)
+            if (in_specular_weight > 0.0)
             {
-                if (isconnected(in_anisotropy_map))
-                {
-                    vector vector_map = normalize(
-                        (vector) in_anisotropy_map * 2.0 - 1.0);
-
-                    tangent = normalize(
-                        vector_map[0] * Tn +
-                        vector_map[1] * Bn + 
-                        vector_map[2] * Nn);
-                }
-            }
-            else
-            {
-                tangent = in_anisotropy_direction;
-            }
-
-            if (in_anisotropy_angle > 0.0)
-            {
-                tangent = rotate(
-                    tangent,
-                    in_anisotropy_angle * M_2PI,
-                    point(0),
-                    point(Nn));
+                out_outColor += in_specular_weight * as_glossy(
+                    "ggx",
+                    Nn,
+                    vector(0),  // tangent
+                    in_specular_roughness,
+                    0.0,        // specular spread for Student's t-MDF
+                    0.0,        // anisotropy amount
+                    in_ior,
+                    "energy_compensation", 1.0);
             }
         }
-
-        out_outColor += in_specular_weight * as_glossy(
-            "ggx",
-            Nn,
-            vector(0),  // tangent
-            in_specular_roughness,
-            0.0,        // specular spread for Student's t-MDF
-            0.0,        // anisotropy amount
-            in_ior,
-            "energy_compensation", 1.0);
     }
 }
