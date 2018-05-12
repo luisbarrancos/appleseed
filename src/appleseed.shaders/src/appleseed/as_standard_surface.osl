@@ -115,6 +115,23 @@ shader as_standard_surface
         int gafferNoduleLayoutVisible = 0,
         int divider = 1
     ]],
+    float in_volume_anisotropy = 0.0
+    [[
+        string as_maya_attribute_name = "volumeAnisotropy",
+        string as_maya_attribute_short_name = "sva",
+        string widget = "slider",
+        float min = -1.0,
+        float max = 1.0,
+        int as_maya_attribute_connectable = 0,
+        int as_maya_attribute_keyable = 0,
+        int as_maya_attribute_hidden = 1,
+        int as_blender_input_socket = 0,
+        int gafferNoduleLayoutVisible = 0,
+        string label = "Volume Anisotropy",
+        string page = "Subsurface.Advanced",
+        string help = "Scattering anisotropy, with 0.0 being isotropic, negative values resulting in back scattering, and positive values in forward scattering. Valid only for the random walk SSS profile.",
+        int divider = 1
+    ]],
     int in_sss_maximum_ray_depth = 2
     [[
         string as_maya_attribute_name = "sssMaximumRayDepth",
@@ -854,7 +871,8 @@ shader as_standard_surface
                     in_diffuse_weight * in_color,
                     in_sss_mfp_scale * in_sss_mfp,
                     in_ior,
-                    "fresnel_weight", 0.0);
+                    "fresnel_weight", 0.0,
+                    "volume_anisotropy", in_volume_anisotropy);
         }
     }
     else
