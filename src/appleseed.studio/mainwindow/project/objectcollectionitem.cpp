@@ -33,7 +33,6 @@
 // appleseed.studio headers.
 #include "mainwindow/project/assemblyitem.h"
 #include "mainwindow/project/entityeditorcontext.h"
-#include "mainwindow/project/itemregistry.h"
 #include "mainwindow/project/objectitem.h"
 #include "mainwindow/project/projectbuilder.h"
 #include "mainwindow/rendering/renderingmanager.h"
@@ -192,7 +191,7 @@ void ObjectCollectionItem::insert_objects(const string& path) const
     if (!mesh_objects.empty())
     {
         m_parent.bump_version_id();
-        m_editor_context.m_project_builder.notify_project_modification();
+        m_editor_context.m_project_builder.slot_notify_project_modification();
     }
 }
 
@@ -200,16 +199,12 @@ ItemBase* ObjectCollectionItem::create_item(Object* object)
 {
     assert(object);
 
-    ItemBase* item =
+    return
         new ObjectItem(
             m_editor_context,
             object,
             m_parent,
             m_parent_item);
-
-    m_editor_context.m_item_registry.insert(*object, item);
-
-    return item;
 }
 
 }   // namespace studio

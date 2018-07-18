@@ -81,7 +81,7 @@ RenderWidget::RenderWidget(
     slot_display_transform_changed(default_transform);
 }
 
-QImage RenderWidget::get_image_copy() const
+QImage RenderWidget::capture()
 {
     QMutexLocker locker(&m_mutex);
 
@@ -360,7 +360,7 @@ void RenderWidget::blit_tile_no_lock(
 
     // Retrieve the dest tile and copy the pixels.
     Tile& dst_tile = m_image_storage->tile(tile_x, tile_y);
-    dst_tile.copy(src_tile);
+    dst_tile.copy_from(src_tile);
 }
 
 void RenderWidget::update_tile_no_lock(const size_t tile_x, const size_t tile_y)

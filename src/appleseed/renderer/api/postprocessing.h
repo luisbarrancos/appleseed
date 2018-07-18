@@ -5,8 +5,7 @@
 //
 // This software is released under the MIT license.
 //
-// Copyright (c) 2010-2013 Francois Beaune, Jupiter Jazz Limited
-// Copyright (c) 2014-2018 Francois Beaune, The appleseedhq Organization
+// Copyright (c) 2018 Francois Beaune, The appleseedhq Organization
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,18 +26,15 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_FOUNDATION_UTILITY_BENCHMARK_BENCHMARKSERIE_H
-#define APPLESEED_FOUNDATION_UTILITY_BENCHMARK_BENCHMARKSERIE_H
+#ifndef APPLESEED_RENDERER_API_POSTPROCESSING_H
+#define APPLESEED_RENDERER_API_POSTPROCESSING_H
 
-// appleseed.foundation headers.
-#include "foundation/utility/api/apiarray.h"
-#include "foundation/utility/benchmark/benchmarkdatapoint.h"
+// API headers.
+#include "renderer/modeling/postprocessingstage/colormappostprocessingstage.h"
+#include "renderer/modeling/postprocessingstage/ipostprocessingstagefactory.h"
+#include "renderer/modeling/postprocessingstage/postprocessingstage.h"
+#include "renderer/modeling/postprocessingstage/postprocessingstagefactoryregistrar.h"
+#include "renderer/modeling/postprocessingstage/postprocessingstagetraits.h"
+#include "renderer/modeling/postprocessingstage/renderstamppostprocessingstage.h"
 
-namespace foundation
-{
-
-APPLESEED_DECLARE_APIARRAY(BenchmarkSerie, BenchmarkDataPoint);
-
-}       // namespace foundation
-
-#endif  // !APPLESEED_FOUNDATION_UTILITY_BENCHMARK_BENCHMARKSERIE_H
+#endif  // !APPLESEED_RENDERER_API_POSTPROCESSING_H

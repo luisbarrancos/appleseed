@@ -167,7 +167,7 @@ void LightPathsTab::slot_save_light_paths()
 
 void LightPathsTab::slot_camera_changed()
 {
-    m_camera_controller->update_camera_transform();
+    m_light_paths_widget->set_transform(m_camera_controller->get_transform());
     m_light_paths_widget->update();
 }
 
@@ -216,7 +216,7 @@ void LightPathsTab::create_toolbar()
     // Previous Light Path button.
     m_prev_path_button = new QToolButton();
     m_prev_path_button->setIcon(load_icons("lightpathstab_prev_light_path"));
-    m_prev_path_button->setToolTip("Previous Light Path");
+    m_prev_path_button->setToolTip("Display previous light path");
     m_prev_path_button->setEnabled(false);
     connect(
         m_prev_path_button, SIGNAL(clicked()),
@@ -226,7 +226,7 @@ void LightPathsTab::create_toolbar()
     // Next Light Path button.
     m_next_path_button = new QToolButton();
     m_next_path_button->setIcon(load_icons("lightpathstab_next_light_path"));
-    m_next_path_button->setToolTip("Next Light Path");
+    m_next_path_button->setToolTip("Display next light path");
     m_next_path_button->setEnabled(false);
     connect(
         m_next_path_button, SIGNAL(clicked()),
@@ -238,13 +238,22 @@ void LightPathsTab::create_toolbar()
     // Toggle Backface Culling button.
     QToolButton* backface_culling_button = new QToolButton();
     backface_culling_button->setIcon(load_icons("lightpathstab_toggle_backface_culling"));
-    backface_culling_button->setToolTip("Toggle Backface Culling");
+    backface_culling_button->setToolTip("Show/hide backfacing surfaces");
     backface_culling_button->setCheckable(true);
     backface_culling_button->setChecked(false);
     connect(
         backface_culling_button, SIGNAL(toggled(bool)),
         m_light_paths_widget, SLOT(slot_toggle_backface_culling(const bool)));
     m_toolbar->addWidget(backface_culling_button);
+
+    // Synchronize Camera button.
+    QToolButton* sync_camera_button = new QToolButton();
+    sync_camera_button->setIcon(load_icons("lightpathstab_synchronize_camera"));
+    sync_camera_button->setToolTip("Synchronize the rendering camera with this camera");
+    connect(
+        sync_camera_button, SIGNAL(clicked()),
+        m_light_paths_widget, SLOT(slot_synchronize_camera()));
+    m_toolbar->addWidget(sync_camera_button);
 
     // Add stretchy spacer.
     // This places interactive widgets on the left and info on the right.
@@ -277,6 +286,17 @@ void LightPathsTab::create_scrollarea()
 
 void LightPathsTab::recreate_handlers()
 {
+    // Handler for zooming the render widget in and out with the keyboard or the mouse wheel.
+    m_zoom_handler.reset(
+        new WidgetZoomHandler(
+            m_scroll_area,
+            m_light_paths_widget));
+
+    // Handler for panning the render widget with the mouse.
+    m_pan_handler.reset(
+        new ScrollAreaPanHandler(
+            m_scroll_area));
+
     // Handler for tracking and displaying mouse coordinates.
     m_mouse_tracker.reset(
         new MouseCoordinatesTracker(
@@ -292,6 +312,7 @@ void LightPathsTab::recreate_handlers()
     m_screen_space_paths_picking_handler->set_enabled(false);
 
     // The world-space paths picking handler is used to pick paths in the light paths widget.
+    // Commented out because we don't want to allow that.
     // m_world_space_paths_picking_handler.reset(
     //     new LightPathsPickingHandler(
     //         m_light_paths_widget,
@@ -303,10 +324,14 @@ void LightPathsTab::recreate_handlers()
     m_camera_controller.reset(
         new CameraController(
             m_light_paths_widget,
-            m_project));
+            m_project,
+            m_project.get_uncached_active_camera()));
     connect(
         m_camera_controller.get(), SIGNAL(signal_camera_changed()),
         SLOT(slot_camera_changed()));
+
+    // Clipboard handler.
+    m_clipboard_handler.reset(new RenderClipboardHandler(m_light_paths_widget, m_light_paths_widget));
 }
 
 }   // namespace studio

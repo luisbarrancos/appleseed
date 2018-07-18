@@ -107,7 +107,7 @@ const Material& MaterialCollectionItem::create_default_disney_material(const str
     add_item(material_ptr);
 
     EntityTraits<Material>::insert_entity(material, m_parent);
-    m_editor_context.m_project_builder.notify_project_modification();
+    m_editor_context.m_project_builder.slot_notify_project_modification();
 
     return *material_ptr;
 }
@@ -136,16 +136,12 @@ ItemBase* MaterialCollectionItem::create_item(Material* material)
 {
     assert(material);
 
-    ItemBase* item =
+    return
         new MaterialItem(
             m_editor_context,
             material,
             m_parent,
             this);
-
-    m_editor_context.m_item_registry.insert(*material, item);
-
-    return item;
 }
 
 void MaterialCollectionItem::slot_create_generic()
@@ -224,7 +220,7 @@ void MaterialCollectionItem::slot_import_disney()
         add_item(material_ptr);
 
         EntityTraits<Material>::insert_entity(material, m_parent);
-        m_editor_context.m_project_builder.notify_project_modification();
+        m_editor_context.m_project_builder.slot_notify_project_modification();
 
         m_editor_context.m_project_explorer.select_entity(material_ptr->get_uid());
     }

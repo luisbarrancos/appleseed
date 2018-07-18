@@ -125,7 +125,8 @@ TEST_SUITE(Renderer_Modeling_Project_ProjectFileWriter)
                 CurveObjectFactory().create(object_name, ParamArray()));
 
             static const GVector3 ControlPoints[] = { GVector3(0.0, 0.0, 0.0), GVector3(0.0, 1.0, 0.0) };
-            curve_object->push_curve1(Curve1Type(ControlPoints, GScalar(0.1)));
+            curve_object->push_basis(1);
+            curve_object->push_curve1(Curve1Type(ControlPoints, GScalar(0.1), GScalar(1.0), Color3f(0.2f, 0.0f, 0.7f)));
 
             get_assembly()->objects().insert(auto_release_ptr<Object>(curve_object));
         }
@@ -147,8 +148,9 @@ TEST_SUITE(Renderer_Modeling_Project_ProjectFileWriter)
         m_project->set_path((project_directory / "project.appleseed").string().c_str());
         m_project->search_paths().set_root_path(project_directory.string());
 
-        m_project->search_paths().push_back("subdirectory");
-        m_project->search_paths().push_back(canonical(project_directory / "../alternate/subdirectory").string());
+        m_project->search_paths().push_back_explicit_path("subdirectory");
+        m_project->search_paths().push_back_explicit_path(
+            canonical(project_directory / "../alternate/subdirectory").string());
 
         create_assembly();
         create_mesh_object("asset1", "asset1.obj"); // found in project's root directory
@@ -191,8 +193,9 @@ TEST_SUITE(Renderer_Modeling_Project_ProjectFileWriter)
         m_project->set_path((project_directory / "project.appleseed").string().c_str());
         m_project->search_paths().set_root_path(project_directory.string());
 
-        m_project->search_paths().push_back("subdirectory");
-        m_project->search_paths().push_back(canonical(project_directory / "../alternate/subdirectory").string());
+        m_project->search_paths().push_back_explicit_path("subdirectory");
+        m_project->search_paths().push_back_explicit_path(
+            canonical(project_directory / "../alternate/subdirectory").string());
 
         create_assembly();
         create_mesh_object("asset1", "asset1.obj"); // found in project's root directory
@@ -262,9 +265,9 @@ TEST_SUITE(Renderer_Modeling_Project_ProjectFileWriter)
                 ProjectFileWriter::OmitHeaderComment);
 
         ASSERT_TRUE(success);
-        EXPECT_TRUE(exists(m_output_directory / "curve_object.txt"));
+        EXPECT_TRUE(exists(m_output_directory / "curve_object.binarycurve"));
         EXPECT_EQ(
-            string("curve_object.txt"),
+            string("curve_object.binarycurve"),
             get_assembly()->objects().get_by_name("curve_object")->get_parameters().get("filepath"));
     }
 
@@ -282,9 +285,9 @@ TEST_SUITE(Renderer_Modeling_Project_ProjectFileWriter)
                 ProjectFileWriter::OmitWritingGeometryFiles);
 
         ASSERT_TRUE(success);
-        EXPECT_FALSE(exists(m_output_directory / "curve_object.txt"));
+        EXPECT_FALSE(exists(m_output_directory / "curve_object.binarycurve"));
         EXPECT_EQ(
-            string("curve_object.txt"),
+            string("curve_object.binarycurve"),
             get_assembly()->objects().get_by_name("curve_object")->get_parameters().get("filepath"));
     }
 

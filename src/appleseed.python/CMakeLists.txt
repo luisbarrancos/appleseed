@@ -66,6 +66,7 @@ set (sources
     bindbssrdf.cpp
     bindcamera.cpp
     bindcolor.cpp
+    bindcurveobject.cpp
     binddisplay.cpp
     bindedf.cpp
     bindentity.cpp
@@ -80,6 +81,7 @@ set (sources
     bindmaterial.cpp
     bindmatrix.cpp
     bindmeshobject.cpp
+    bindmurmurhash.cpp
     bindobject.cpp
     bindproject.cpp
     bindquaternion.cpp
@@ -92,6 +94,7 @@ set (sources
     bindtransform.cpp
     bindutility.cpp
     bindvector.cpp
+    bindvolume.cpp
     dict2dict.cpp
     dict2dict.h
     gillocks.h

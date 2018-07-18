@@ -70,6 +70,29 @@ source_group ("foundation\\core" FILES
     ${foundation_core_sources}
 )
 
+set (foundation_curve_sources
+    foundation/curve/binarycurvefilereader.cpp
+    foundation/curve/binarycurvefilereader.h
+    foundation/curve/binarycurvefilewriter.cpp
+    foundation/curve/binarycurvefilewriter.h
+    foundation/curve/genericcurvefilereader.cpp
+    foundation/curve/genericcurvefilereader.h
+    foundation/curve/genericcurvefilewriter.cpp
+    foundation/curve/genericcurvefilewriter.h
+    foundation/curve/icurvebuilder.h
+    foundation/curve/icurvefilereader.h
+    foundation/curve/icurvefilewriter.h
+    foundation/curve/icurvewalker.h
+    foundation/curve/mitshairfilereader.cpp
+    foundation/curve/mitshairfilereader.h
+)
+list (APPEND appleseed_sources
+    ${foundation_curve_sources}
+)
+source_group ("foundation\\curve" FILES
+    ${foundation_curve_sources}
+)
+
 set (foundation_image_text_sources
     foundation/image/text/stb_truetype.cpp
     foundation/image/text/stb_truetype.h
@@ -441,6 +464,7 @@ set (foundation_meta_tests_sources
     foundation/meta/tests/test_microfacet.cpp
     foundation/meta/tests/test_minmax.cpp
     foundation/meta/tests/test_mis.cpp
+    foundation/meta/tests/test_murmurhash.cpp
     foundation/meta/tests/test_noise.cpp
     foundation/meta/tests/test_objmeshfilereader.cpp
     foundation/meta/tests/test_objmeshfilewriter.cpp
@@ -469,6 +493,7 @@ set (foundation_meta_tests_sources
     foundation/meta/tests/test_spline.cpp
     foundation/meta/tests/test_statistics.cpp
     foundation/meta/tests/test_stlallocatortestbed.cpp
+    foundation/meta/tests/test_stopwatch.cpp
     foundation/meta/tests/test_string.cpp
     foundation/meta/tests/test_test.cpp
     foundation/meta/tests/test_thread.cpp
@@ -604,8 +629,8 @@ set (foundation_utility_benchmark_sources
     foundation/utility/benchmark/benchmarklistenerbase.h
     foundation/utility/benchmark/benchmarkresult.cpp
     foundation/utility/benchmark/benchmarkresult.h
-    foundation/utility/benchmark/benchmarkserie.cpp
-    foundation/utility/benchmark/benchmarkserie.h
+    foundation/utility/benchmark/benchmarkseries.cpp
+    foundation/utility/benchmark/benchmarkseries.h
     foundation/utility/benchmark/benchmarksuite.cpp
     foundation/utility/benchmark/benchmarksuite.h
     foundation/utility/benchmark/benchmarksuiterepository.cpp
@@ -818,6 +843,8 @@ set (foundation_utility_sources
     foundation/utility/makevector.h
     foundation/utility/memory.cpp
     foundation/utility/memory.h
+    foundation/utility/murmurhash.cpp
+    foundation/utility/murmurhash.h
     foundation/utility/numerictype.h
     foundation/utility/otherwise.h
     foundation/utility/poison.h
@@ -896,6 +923,7 @@ set (renderer_api_sources
     renderer/api/log.h
     renderer/api/material.h
     renderer/api/object.h
+    renderer/api/postprocessing.h
     renderer/api/project.h
     renderer/api/rasterization.h
     renderer/api/rendering.h
@@ -933,6 +961,8 @@ source_group ("renderer\\global" FILES
 set (renderer_kernel_aov_sources
     renderer/kernel/aov/aovaccumulator.cpp
     renderer/kernel/aov/aovaccumulator.h
+    renderer/kernel/aov/aovcomponents.cpp
+    renderer/kernel/aov/aovcomponents.h
     renderer/kernel/aov/aovsettings.h
     renderer/kernel/aov/imagestack.cpp
     renderer/kernel/aov/imagestack.h
@@ -1240,8 +1270,6 @@ set (renderer_kernel_shading_sources
     renderer/kernel/shading/directshadingcomponents.h
     renderer/kernel/shading/fastambientocclusion.cpp
     renderer/kernel/shading/fastambientocclusion.h
-    renderer/kernel/shading/oslshadercompiler.cpp
-    renderer/kernel/shading/oslshadercompiler.h
     renderer/kernel/shading/oslshadergroupexec.cpp
     renderer/kernel/shading/oslshadergroupexec.h
     renderer/kernel/shading/oslshadingsystem.cpp
@@ -1359,6 +1387,8 @@ source_group ("renderer\\meta\\tests" FILES
 )
 
 set (renderer_modeling_aov_sources
+    renderer/modeling/aov/albedoaov.cpp
+    renderer/modeling/aov/albedoaov.h
     renderer/modeling/aov/aov.cpp
     renderer/modeling/aov/aov.h
     renderer/modeling/aov/aovcontainer.h
@@ -1785,6 +1815,29 @@ source_group ("renderer\\modeling\\object" FILES
     ${renderer_modeling_object_sources}
 )
 
+set (renderer_modeling_postprocessingstage_sources
+    renderer/modeling/postprocessingstage/colormapdata.cpp
+    renderer/modeling/postprocessingstage/colormapdata.h
+    renderer/modeling/postprocessingstage/colormappostprocessingstage.cpp
+    renderer/modeling/postprocessingstage/colormappostprocessingstage.h
+    renderer/modeling/postprocessingstage/ipostprocessingstagefactory.cpp
+    renderer/modeling/postprocessingstage/ipostprocessingstagefactory.h
+    renderer/modeling/postprocessingstage/postprocessingstage.cpp
+    renderer/modeling/postprocessingstage/postprocessingstage.h
+    renderer/modeling/postprocessingstage/postprocessingstagecontainer.h
+    renderer/modeling/postprocessingstage/postprocessingstagefactoryregistrar.cpp
+    renderer/modeling/postprocessingstage/postprocessingstagefactoryregistrar.h
+    renderer/modeling/postprocessingstage/postprocessingstagetraits.h
+    renderer/modeling/postprocessingstage/renderstamppostprocessingstage.cpp
+    renderer/modeling/postprocessingstage/renderstamppostprocessingstage.h
+)
+list (APPEND appleseed_sources
+    ${renderer_modeling_postprocessingstage_sources}
+)
+source_group ("renderer\\modeling\\postprocessingstage" FILES
+    ${renderer_modeling_postprocessingstage_sources}
+)
+
 set (renderer_modeling_project_sources
     renderer/modeling/project/assethandler.cpp
     renderer/modeling/project/assethandler.h
@@ -1864,6 +1917,8 @@ source_group ("renderer\\modeling\\scene" FILES
 set (renderer_modeling_shadergroup
     renderer/modeling/shadergroup/shader.cpp
     renderer/modeling/shadergroup/shader.h
+    renderer/modeling/shadergroup/shadercompiler.cpp
+    renderer/modeling/shadergroup/shadercompiler.h
     renderer/modeling/shadergroup/shaderconnection.cpp
     renderer/modeling/shadergroup/shaderconnection.h
     renderer/modeling/shadergroup/shadergroup.cpp

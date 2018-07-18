@@ -32,16 +32,22 @@
 
 // appleseed.studio headers.
 #include "mainwindow/project/entityeditorcontext.h"
-#include "mainwindow/project/multimodelcollectionitem.h"
 #include "mainwindow/project/outputitem.h"
 #include "mainwindow/project/projectbuilder.h"
 #include "mainwindow/project/sceneitem.h"
+#include "mainwindow/project/searchpathswindow.h"
 
 // appleseed.renderer headers.
 #include "renderer/api/project.h"
 
 // appleseed.foundation headers.
 #include "foundation/utility/uid.h"
+
+// Qt headers.
+#include <QMenu>
+
+// Standard headers.
+#include <cassert>
 
 using namespace foundation;
 using namespace renderer;
@@ -62,11 +68,23 @@ ProjectItem::ProjectItem(EntityEditorContext& editor_context)
 
     Project& project = m_editor_context.m_project;
 
+    assert(project.get_scene() != nullptr);
     m_scene_item = new SceneItem(editor_context, *project.get_scene());
     addChild(m_scene_item);
 
-    m_output_item = new OutputItem(editor_context, project);
+    assert(project.get_frame() != nullptr);
+    m_output_item = new OutputItem(editor_context, project.get_frame());
     addChild(m_output_item);
+}
+
+QMenu* ProjectItem::get_single_item_context_menu() const
+{
+    QMenu* menu = ItemBase::get_single_item_context_menu();
+
+    menu->addSeparator();
+    menu->addAction("Edit Search Paths...", this, SLOT(slot_edit_search_paths()));
+
+    return menu;
 }
 
 void ProjectItem::expand()
@@ -75,6 +93,24 @@ void ProjectItem::expand()
 
     m_scene_item->expand();
     m_output_item->setExpanded(true);
+}
+
+void ProjectItem::slot_edit_search_paths()
+{
+    if (m_search_paths_window.get() == nullptr)
+    {
+        m_search_paths_window.reset(
+            new SearchPathsWindow(
+                m_editor_context.m_project,
+                QTreeWidgetItem::treeWidget()));
+
+        connect(
+            m_search_paths_window.get(), SIGNAL(signal_paths_modified()),
+            &m_editor_context.m_project_builder, SLOT(slot_notify_project_modification()));
+    }
+
+    m_search_paths_window->showNormal();
+    m_search_paths_window->activateWindow();
 }
 
 }   // namespace studio

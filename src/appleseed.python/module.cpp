@@ -42,6 +42,7 @@ void bind_bsdf();
 void bind_bssrdf();
 void bind_camera();
 void bind_color();
+void bind_curve_object();
 void bind_display();
 void bind_edf();
 void bind_entity();
@@ -55,6 +56,7 @@ void bind_master_renderer();
 void bind_material();
 void bind_matrix();
 void bind_mesh_object();
+void bind_murmurhash();
 void bind_object();
 void bind_project();
 void bind_quaternion();
@@ -67,6 +69,7 @@ void bind_tile_callback();
 void bind_transform();
 void bind_utility();
 void bind_vector();
+void bind_volume();
 
 extern "C" void bind_appleseed_python_classes()
 {
@@ -78,6 +81,7 @@ extern "C" void bind_appleseed_python_classes()
     boost::python::scope().attr("APPLESEED_VERSION_STRING") = APPLESEED_VERSION_STRING;
 
     bind_utility();
+    bind_murmurhash();
     bind_logger();
 
     bind_vector();
@@ -94,12 +98,14 @@ extern "C" void bind_appleseed_python_classes()
     bind_bsdf();
     bind_bssrdf();
     bind_edf();
+    bind_volume();
     bind_shader_group();
 
     bind_surface_shader();
     bind_material();
     bind_light();
     bind_object();
+    bind_curve_object();
     bind_mesh_object();
     bind_assembly();
 

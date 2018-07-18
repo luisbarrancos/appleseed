@@ -43,6 +43,7 @@
 #include <QObject>
 
 // Forward declarations.
+namespace renderer  { class Camera; }
 namespace renderer  { class Project; }
 class QEvent;
 class QKeyEvent;
@@ -60,9 +61,18 @@ class CameraController
   public:
     // Constructor.
     // The camera controller is disabled by default.
+    // The camera controller controls the project's camera.
     CameraController(
         QWidget*            widget,
         renderer::Project&  project);
+
+    // Constructor.
+    // The camera controller is disabled by default.
+    // The camera controller controls the given camera.
+    CameraController(
+        QWidget*            widget,
+        renderer::Project&  project,
+        renderer::Camera*   camera);
 
     // Destructor.
     ~CameraController() override;
@@ -89,6 +99,7 @@ class CameraController
 
     QWidget*                m_widget;
     renderer::Project&      m_project;
+    renderer::Camera*       m_custom_camera;
     bool                    m_enabled;
 
     ControllerType          m_controller;
@@ -97,6 +108,8 @@ class CameraController
     void configure_controller();
 
     bool eventFilter(QObject* object, QEvent* event) override;
+
+    renderer::Camera* fetch_camera();
 
     bool handle_mouse_button_press_event(const QMouseEvent* event);
     bool handle_mouse_button_release_event(const QMouseEvent* event);

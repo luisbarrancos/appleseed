@@ -264,10 +264,10 @@ void ObjectInstanceItem::slot_open_material_assignment_editor()
 {
     MaterialAssignmentEditorWindow* editor_window =
         new MaterialAssignmentEditorWindow(
-            QTreeWidgetItem::treeWidget(),
             *m_entity,
             *this,
-            m_editor_context);
+            m_editor_context,
+            QTreeWidgetItem::treeWidget());
 
     editor_window->showNormal();
     editor_window->activateWindow();
@@ -464,22 +464,16 @@ void ObjectInstanceItem::do_delete()
     if (!allows_deletion())
         return;
 
-    const UniqueID object_instance_uid = m_entity->get_uid();
-
     // Remove and delete the object instance.
     m_parent.object_instances().remove(
-        m_parent.object_instances().get_by_uid(object_instance_uid));
+        m_parent.object_instances().get_by_uid(m_entity_uid));
 
     // Mark the assembly and the project as modified.
     m_parent.bump_version_id();
-    m_editor_context.m_project_builder.notify_project_modification();
+    m_editor_context.m_project_builder.slot_notify_project_modification();
 
     // Remove and delete the object instance item.
-    ItemBase* object_instance_item = m_editor_context.m_item_registry.get_item(object_instance_uid);
-    m_editor_context.m_item_registry.remove(object_instance_uid);
-    delete object_instance_item;
-
-    // At this point 'this' no longer exists.
+    delete this;
 }
 
 void ObjectInstanceItem::add_material_assignment_menu_actions(
@@ -548,7 +542,7 @@ void ObjectInstanceItem::do_assign_material(
     if (sides & ObjectInstance::BackSide)
         m_entity->assign_material(slot_name, ObjectInstance::BackSide, material_name);
 
-    m_editor_context.m_project_builder.notify_project_modification();
+    m_editor_context.m_project_builder.slot_notify_project_modification();
 
     update_style();
 }
@@ -563,7 +557,7 @@ void ObjectInstanceItem::do_unassign_material(
     if (sides & ObjectInstance::BackSide)
         m_entity->unassign_material(slot_name, ObjectInstance::BackSide);
 
-    m_editor_context.m_project_builder.notify_project_modification();
+    m_editor_context.m_project_builder.slot_notify_project_modification();
 
     update_style();
 }

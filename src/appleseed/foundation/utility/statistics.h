@@ -136,6 +136,25 @@ class Statistics
         std::string to_string() const override;
     };
 
+    template <typename T>
+    struct PercentEntry
+      : public Entry
+    {
+        T                   m_numerator;
+        T                   m_denominator;
+        std::streamsize     m_precision;
+
+        PercentEntry(
+            const std::string&          name,
+            const T                     numerator,
+            const T                     denominator,
+            const std::streamsize       precision);
+
+        std::unique_ptr<Entry> clone() const override;
+        void merge(const Entry* other) override;
+        std::string to_string() const override;
+    };
+
     struct StringEntry
       : public Entry
     {
@@ -155,12 +174,14 @@ class Statistics
     struct PopulationEntry
       : public Entry
     {
-        Population<T> m_value;
+        Population<T>       m_value;
+        std::streamsize     m_precision;
 
         PopulationEntry(
             const std::string&          name,
             const std::string&          unit,
-            const Population<T>&        value);
+            const Population<T>&        value,
+            const std::streamsize       precision);
 
         std::unique_ptr<Entry> clone() const override;
         void merge(const Entry* other) override;
@@ -194,7 +215,14 @@ class Statistics
     void insert(
         const std::string&              name,
         const Population<T>&            value,
-        const std::string&              unit);
+        const std::streamsize           precision = 1);
+
+    template <typename T>
+    void insert(
+        const std::string&              name,
+        const Population<T>&            value,
+        const std::string&              unit,
+        const std::streamsize           precision = 1);
 
     void insert_size(
         const std::string&              name,
@@ -357,14 +385,24 @@ inline void Statistics::insert<std::string>(
 }
 
 template <typename T>
+void Statistics::insert(
+    const std::string&                  name,
+    const Population<T>&                value,
+    const std::streamsize               precision)
+{
+    insert(name, value, std::string(), precision);
+}
+
+template <typename T>
 inline void Statistics::insert(
     const std::string&                  name,
     const Population<T>&                value,
-    const std::string&                  unit)
+    const std::string&                  unit,
+    const std::streamsize               precision)
 {
     insert(
         std::unique_ptr<PopulationEntry<T>>(
-            new PopulationEntry<T>(name, unit, value)));
+            new PopulationEntry<T>(name, unit, value, precision)));
 }
 
 inline void Statistics::insert_size(
@@ -390,7 +428,9 @@ void Statistics::insert_percent(
     const T                             denominator,
     const std::streamsize               precision)
 {
-    insert(name, pretty_percent(numerator, denominator, precision));
+    insert(
+        std::unique_ptr<PercentEntry<T>>(
+            new PercentEntry<T>(name, numerator, denominator, precision)));
 }
 
 
@@ -413,6 +453,46 @@ const T* Statistics::Entry::cast(const Entry* entry)
 
 
 //
+// Statistics::PercentEntry class implementation.
+//
+
+template <typename T>
+Statistics::PercentEntry<T>::PercentEntry(
+    const std::string&                  name,
+    const T                             numerator,
+    const T                             denominator,
+    const std::streamsize               precision)
+  : Entry(name)
+  , m_numerator(numerator)
+  , m_denominator(denominator)
+  , m_precision(precision)
+{
+}
+
+template <typename T>
+std::unique_ptr<Statistics::Entry> Statistics::PercentEntry<T>::clone() const
+{
+    return std::unique_ptr<Statistics::Entry>(new PercentEntry(*this));
+}
+
+template <typename T>
+void Statistics::PercentEntry<T>::merge(const Entry* other)
+{
+    const PercentEntry* pother = cast<PercentEntry>(other);
+
+    m_numerator += pother->m_numerator;
+    m_denominator += pother->m_denominator;
+    m_precision = std::max(m_precision, pother->m_precision);
+}
+
+template <typename T>
+std::string Statistics::PercentEntry<T>::to_string() const
+{
+    return pretty_percent(m_numerator, m_denominator, m_precision);
+}
+
+
+//
 // Statistics::PopulationEntry class implementation.
 //
 
@@ -420,9 +500,11 @@ template <typename T>
 Statistics::PopulationEntry<T>::PopulationEntry(
     const std::string&                  name,
     const std::string&                  unit,
-    const Population<T>&                value)
+    const Population<T>&                value,
+    const std::streamsize               precision)
   : Entry(name, unit)
   , m_value(value)
+  , m_precision(precision)
 {
 }
 
@@ -436,13 +518,14 @@ template <typename T>
 void Statistics::PopulationEntry<T>::merge(const Entry* other)
 {
     m_value.merge(cast<PopulationEntry>(other)->m_value);
+    m_precision = std::max(m_precision, cast<PopulationEntry>(other)->m_precision);
 }
 
 template <typename T>
 std::string Statistics::PopulationEntry<T>::to_string() const
 {
     std::stringstream sstr;
-    sstr << std::fixed << std::setprecision(1);
+    sstr << std::fixed << std::setprecision(m_precision);
 
     sstr <<   "avg " << m_value.get_mean() << m_unit;
     sstr << "  min " << m_value.get_min() << m_unit;

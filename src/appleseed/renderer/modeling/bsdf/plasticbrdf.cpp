@@ -125,7 +125,8 @@ namespace
             if (!BSDF::on_frame_begin(project, parent, recorder, abort_switch))
                 return false;
 
-            const EntityDefMessageContext context("bsdf", this);
+            const OnFrameBeginMessageContext context("bsdf", this);
+
             const string mdf =
                 m_params.get_required<string>(
                     "mdf",
@@ -257,6 +258,7 @@ namespace
 
                 sample.m_mode = ScatteringMode::Diffuse;
                 sample.m_probability = wi.y * RcpPi<float>() * (1.0f - specular_probability);
+                sample.m_aov_components.m_albedo = values->m_diffuse_reflectance;
             }
 
             sample.m_incoming = Dual3f(sample.m_shading_basis.transform_to_parent(wi));

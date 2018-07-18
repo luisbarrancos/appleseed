@@ -57,11 +57,14 @@
 #include "foundation/math/transform.h"
 #include "foundation/math/vector.h"
 #include "foundation/platform/compiler.h"
+#include "foundation/platform/defaulttimers.h"
 #include "foundation/platform/types.h"
 #include "foundation/utility/api/apistring.h"
 #include "foundation/utility/api/specializedapiarrays.h"
 #include "foundation/utility/containers/dictionary.h"
 #include "foundation/utility/job/abortswitch.h"
+#include "foundation/utility/stopwatch.h"
+#include "foundation/utility/string.h"
 
 // Standard headers.
 #include <cassert>
@@ -206,9 +209,7 @@ namespace
             if (environment->get_uncached_environment_edf() == this)
             {
                 check_non_zero_emission("radiance", "radiance_multiplier");
-
-                if (m_importance_sampler.get() == nullptr)
-                    build_importance_map(*project.get_scene(), abort_switch);
+                build_importance_map(*project.get_scene(), abort_switch);
             }
 
             return true;
@@ -382,6 +383,9 @@ namespace
 
         void build_importance_map(const Scene& scene, IAbortSwitch*abort_switch)
         {
+            Stopwatch<DefaultWallclockTimer> stopwatch;
+            stopwatch.start();
+
             const Source* radiance_source = m_inputs.source("radiance");
             assert(radiance_source);
 
@@ -424,9 +428,12 @@ namespace
                 m_importance_sampler.reset();
             else
             {
+                stopwatch.measure();
+
                 RENDERER_LOG_INFO(
-                    "built importance map for environment edf \"%s\".",
-                    get_path().c_str());
+                    "built importance map for environment edf \"%s\" in %s.",
+                    get_path().c_str(),
+                    pretty_time(stopwatch.get_seconds()).c_str());
             }
         }
 
