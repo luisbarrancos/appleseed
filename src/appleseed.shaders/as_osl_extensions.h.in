@@ -172,4 +172,9 @@ closure color as_npr_contour(
     float       creases_threshold
 ) BUILTIN;
 
+closure color as_fabric(
+    normal      N,
+    vector      T,
+    float       roughness) BUILTIN;
+
 #endif  // AS_OSL_EXTENSIONS_H
