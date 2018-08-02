@@ -27,7 +27,7 @@
 //
 
 // Interface header.
-#include "microcylfabricbrdf.h"
+#include "fabricbrdf.h"
 
 // appleseed.renderer headers.
 #include "renderer/kernel/lighting/scatteringmode.h"
@@ -63,7 +63,7 @@ namespace renderer
 namespace
 {
     //
-    // Microcylinder fabric BRDF.
+    // DWA fabric BRDF.
     //
     // Reference:
     //
@@ -71,13 +71,13 @@ namespace
     //   http://blog.selfshadow.com/publications/s2017-shading-course/dreamworks/s2017_pbs_dreamworks_notes.pdf
     //
 
-    const char* Model = "microcylfabric_brdf";
+    const char* Model = "fabric_brdf";
 
-    class MicrocylFabricBRDFImpl
+    class FabricBRDFImpl
       : public BSDF
     {
       public:
-        MicrocylFabricBRDFImpl(
+        FabricBRDFImpl(
             const char*                 name,
             const ParamArray&           params)
           : BSDF(name, Reflective, ScatteringMode::Glossy, params)
@@ -133,15 +133,13 @@ namespace
 
             // Compute the incoming direction.
             sampling_context.split_in_place(2, 1);
-            const Vector2f s = sampling_context.next2<Vector2f>();
+            const Vector2f s = sampling_context.next2<Vector2f>();            
+            const InputValues* values = static_cast<const InputValues*>(data);
 
             // Sample phi
             const float phi = s[0] * Pi<float>();
             float cos_phi = cos(phi);
             float sin_phi = sin(phi);
-
-            // Compute the BRDF value.
-            const InputValues* values = static_cast<const InputValues*>(data);
 
             // Sample theta
             const float sin_theta = 1.0f - pow(s[1], 1.0f / (values->m_exponent + 1.0f));
@@ -161,21 +159,23 @@ namespace
                 sample.m_shading_basis.get_normal();
 
             const float cos_hn = dot(h, shading_normal);
-            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
             const float cos_ho = abs(dot(h, sample.m_outgoing.get_value()));
-            const float denom = pow(1.0f - sin_hn, values->m_exponent);
+            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
-            //sample.m_value.m_glossy = 1.0f;
-            //sample.m_value.m_beauty = sample.m_value.m_glossy;
-
-            // Compute the probability density of the sampled direction.
-            sample.m_probability = (values->m_exponent + 1.0f) /
-                    (RcpFourPi<float>() * cos_ho);
+            // Evaluate the BRDF
+            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float den = cos_ho * FourPi<float>();
+            // And PDF
+            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            assert(pdf >= 0.0f);
 
             sample.m_incoming = Dual3f(incoming);
+            sample.m_value.m_glossy = values->m_reflectance * num;
+            sample.m_value.m_beauty = sample.m_value.m_glossy;
+            sample.m_probability = pdf;
+
             sample.compute_reflected_differentials();
         }
-
 
         float evaluate(
             const void*                 data,
@@ -200,22 +200,24 @@ namespace
             // Compute dot products
             const Vector3f& n = shading_basis.get_normal();
 
-            const float cos_in = abs(dot(incoming, n));
             const float cos_on = abs(dot(outgoing, n));
-            const float cos_oh = abs(dot(outgoing, h));
+            const float cos_ho = abs(dot(outgoing, h));
             const float cos_hn = abs(dot(h, n));
+            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
             // Evaluate the fabric BRDF
+            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float den = cos_ho * FourPi<float>();
+            // And PDF
+            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            assert(pdf >= 0.0f);
 
+            value.m_glossy = values->m_reflectance * num;
+            value.m_beauty = value.m_glossy;
 
-
-            // Evaluate the PDF
             // Return the probability density of the sampled direction.
-            return cos_in * RcpPi<float>();
+            return pdf;
         }
-
-
-
 
         float evaluate_pdf(
             const void*                 data,
@@ -229,23 +231,31 @@ namespace
             if (!ScatteringMode::has_glossy(modes))
                 return 0.0f;
 
+            const InputValues* values = static_cast<const InputValues*>(data);
+
             // get reflectance values
+            //if (values->m_reflectance < epsilon)
+            //    return 0.0f;
 
             // Compute the halfway vector in world space
             const Vector3f h = normalize(incoming + outgoing);
 
-            float pdf_fabric = 0.0f;
             // Evaluate the PDF for the halfway vector
-
-            const float cos_oh = abs(dot(outgoing, h));
+            const float cos_ho = abs(dot(outgoing, h));
             const float cos_hn = abs(dot(h, shading_basis.get_normal()));
+            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
+
+            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float den = cos_ho * FourPi<float>();
+            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            assert(pdf >= 0.0f);
 
             // Return the probability density of the sampled direction.
-            return pdf_fabric;
+            return pdf;
         }
 
       private:
-        typedef MicrocylFabricBRDFInputValues InputValues;
+        typedef FabricBRDFInputValues InputValues;
 
         static void fabric_brdf(
             const Spectrum&             reflectance,
@@ -255,7 +265,7 @@ namespace
             const Vector3f&             m,
             Spectrum&                   value)
         {
-            ;
+            ; // move brdf here (TODO)
         }
 
         static float fabric_pdf(
@@ -263,6 +273,7 @@ namespace
             const Vector3f&             wo,
             const Vector3f&             m)
         {
+            // WIP, move PDF here
             if (exponent == 0.0f)
                 return 0.0f;
 
@@ -279,25 +290,25 @@ namespace
         }
     };
 
-    typedef BSDFWrapper<MicrocylFabricBRDFImpl> MicrocylFabricBRDF;
+    typedef BSDFWrapper<FabricBRDFImpl> FabricBRDF;
 }
 
 
 //
-// MicrocylFabricBRDFFactory class implementation.
+// FabricBRDFFactory class implementation.
 //
 
-void MicrocylFabricBRDFFactory::release()
+void FabricBRDFFactory::release()
 {
     delete this;
 }
 
-const char* MicrocylFabricBRDFFactory::get_model() const
+const char* FabricBRDFFactory::get_model() const
 {
     return Model;
 }
 
-Dictionary MicrocylFabricBRDFFactory::get_model_metadata() const
+Dictionary FabricBRDFFactory::get_model_metadata() const
 {
     return
         Dictionary()
@@ -305,7 +316,7 @@ Dictionary MicrocylFabricBRDFFactory::get_model_metadata() const
             .insert("label", "Microcylinder Fabric BRDF");
 }
 
-DictionaryArray MicrocylFabricBRDFFactory::get_input_metadata() const
+DictionaryArray FabricBRDFFactory::get_input_metadata() const
 {
     DictionaryArray metadata;
 
@@ -344,11 +355,11 @@ DictionaryArray MicrocylFabricBRDFFactory::get_input_metadata() const
     return metadata;
 }
 
-auto_release_ptr<BSDF> MicrocylFabricBRDFFactory::create(
+auto_release_ptr<BSDF> FabricBRDFFactory::create(
     const char*         name,
     const ParamArray&   params) const
 {
-    return auto_release_ptr<BSDF>(new MicrocylFabricBRDF(name, params));
+    return auto_release_ptr<BSDF>(new FabricBRDF(name, params));
 }
 
 }   // namespace renderer

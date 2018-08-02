@@ -40,6 +40,7 @@
 #include "renderer/modeling/bsdf/bsdftraits.h"
 #include "renderer/modeling/bsdf/diffusebtdf.h"
 #include "renderer/modeling/bsdf/disneybrdf.h"
+#include "renderer/modeling/bsdf/fabricbrdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
 #include "renderer/modeling/bsdf/glossybrdf.h"
 #include "renderer/modeling/bsdf/ibsdffactory.h"

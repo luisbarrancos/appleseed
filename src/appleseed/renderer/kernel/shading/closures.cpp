@@ -37,6 +37,7 @@
 #include "renderer/modeling/bsdf/blinnbrdf.h"
 #include "renderer/modeling/bsdf/diffusebtdf.h"
 #include "renderer/modeling/bsdf/disneybrdf.h"
+#include "renderer/modeling/bsdf/fabricbrdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
 #include "renderer/modeling/bsdf/glossybrdf.h"
 #include "renderer/modeling/bsdf/metalbrdf.h"
@@ -520,6 +521,68 @@ namespace
             values->m_radiance.set(Color3f(weight / max_weight_component), g_std_lighting_conditions, Spectrum::Illuminance);
             values->m_radiance_multiplier = max_weight_component;
             values->m_exposure = 0.0f;
+        }
+    };
+
+    struct FabricClosure
+    {
+        struct Params
+        {
+            OSL::Vec3       N;
+            OSL::Vec3       T;
+            float           roughness;
+        };
+
+        static const char* name()
+        {
+            return "as_fabric";
+        }
+
+        static ClosureID id()
+        {
+            return FabricID;
+        }
+
+        static int modes()
+        {
+            return ScatteringMode::Glossy;
+        }
+
+        static void register_closure(OSLShadingSystem& shading_system)
+        {
+            const OSL::ClosureParam params[] =
+            {
+                CLOSURE_VECTOR_PARAM(Params, N),
+                CLOSURE_VECTOR_PARAM(Params, T),
+                CLOSURE_FLOAT_PARAM(Params, roughness),
+                CLOSURE_FINISH_PARAM(Params)
+            };
+
+            shading_system.register_closure(name(), id(), params, nullptr, nullptr);
+
+            g_closure_convert_funs[id()] = &convert_closure;
+            g_closure_get_modes_funs[id()] = &modes;
+        }
+
+        static void convert_closure(
+            CompositeSurfaceClosure&    composite_closure,
+            const Basis3f&              shading_basis,
+            const void*                 osl_params,
+            const Color3f&              weight,
+            Arena&                      arena)
+        {
+            const Params* p = static_cast<const Params*>(osl_params);
+
+            FabricBRDFInputValues* values =
+                composite_closure.add_closure<FabricBRDFInputValues>(
+                    FabricID,
+                        shading_basis,
+                        weight,
+                        p->N,
+                        p->T,
+                        arena);
+
+            values->m_roughness = max(p->roughness, 0.001f);
         }
     };
 

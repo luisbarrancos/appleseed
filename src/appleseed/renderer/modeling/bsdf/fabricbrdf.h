@@ -26,8 +26,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef APPLESEED_RENDERER_MODELING_BSDF_MICROCYLFABRICBRDF_H
-#define APPLESEED_RENDERER_MODELING_BSDF_MICROCYLFABRICBRDF_H
+#ifndef APPLESEED_RENDERER_MODELING_BSDF_FABRICBRDF_H
+#define APPLESEED_RENDERER_MODELING_BSDF_FABRICBRDF_H
 
 // appleseed.renderer headers.
 #include "renderer/global/globaltypes.h"
@@ -54,7 +54,7 @@ namespace renderer
 // Microcylinder fabric  BRDF input values.
 //
 
-APPLESEED_DECLARE_INPUT_VALUES(MicrocylFabricBRDFInputValues)
+APPLESEED_DECLARE_INPUT_VALUES(FabricBRDFInputValues)
 {
     Spectrum    m_reflectance;
     float       m_reflectance_multiplier;
@@ -64,10 +64,10 @@ APPLESEED_DECLARE_INPUT_VALUES(MicrocylFabricBRDFInputValues)
 
 
 //
-// Microcylinder fabric BRDF factory.
+// DWA fabric BRDF factory.
 //
 
-class APPLESEED_DLLSYMBOL MicrocylFabricBRDFFactory
+class APPLESEED_DLLSYMBOL FabricBRDFFactory
   : public IBSDFFactory
 {
   public:
@@ -91,4 +91,4 @@ class APPLESEED_DLLSYMBOL MicrocylFabricBRDFFactory
 
 }       // namespace renderer
 
-#endif  // !APPLESEED_RENDERER_MODELING_BSDF_MICROCYLFABRICBRDF_H
+#endif  // !APPLESEED_RENDERER_MODELING_BSDF_FABRICBRDF_H

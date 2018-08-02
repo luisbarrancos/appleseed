@@ -1463,6 +1463,8 @@ set (renderer_modeling_bsdf_sources
     renderer/modeling/bsdf/energycompensation.h
     renderer/modeling/bsdf/energycompensationtables.cpp
     renderer/modeling/bsdf/energycompensationtables.h
+    renderer/modeling/bsdf/fabricbrdf.cpp
+    renderer/modeling/bsdf/fabricbrdf.h
     renderer/modeling/bsdf/fresnel.h
     renderer/modeling/bsdf/glassbsdf.cpp
     renderer/modeling/bsdf/glassbsdf.h
@@ -1475,8 +1477,6 @@ set (renderer_modeling_bsdf_sources
     renderer/modeling/bsdf/lambertianbrdf.h
     renderer/modeling/bsdf/metalbrdf.cpp
     renderer/modeling/bsdf/metalbrdf.h
-    renderer/modeling/bsdf/microcylfabricbrdf.cpp
-    renderer/modeling/bsdf/microcylfabricbrdf.h
     renderer/modeling/bsdf/microfacethelper.cpp
     renderer/modeling/bsdf/microfacethelper.h
     renderer/modeling/bsdf/nullbsdf.h

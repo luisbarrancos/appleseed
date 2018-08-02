@@ -38,6 +38,7 @@
 #include "renderer/modeling/bsdf/bsdftraits.h"
 #include "renderer/modeling/bsdf/diffusebtdf.h"
 #include "renderer/modeling/bsdf/disneybrdf.h"
+#include "renderer/modeling/bsdf/fabricbrdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
 #include "renderer/modeling/bsdf/glossybrdf.h"
 #include "renderer/modeling/bsdf/kelemenbrdf.h"
@@ -96,6 +97,7 @@ void BSDFFactoryRegistrar::reinitialize(const SearchPaths& search_paths)
     register_factory(auto_release_ptr<FactoryType>(new BSDFMixFactory()));
     register_factory(auto_release_ptr<FactoryType>(new DiffuseBTDFFactory()));
     register_factory(auto_release_ptr<FactoryType>(new DisneyBRDFFactory()));
+    register_factory(auto_release_ptr<FactoryType>(new FabricBRDFFactory()));
     register_factory(auto_release_ptr<FactoryType>(new GlassBSDFFactory()));
     register_factory(auto_release_ptr<FactoryType>(new GlossyBRDFFactory()));
     register_factory(auto_release_ptr<FactoryType>(new KelemenBRDFFactory()));
