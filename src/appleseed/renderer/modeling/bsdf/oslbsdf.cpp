@@ -42,6 +42,7 @@
 #include "renderer/modeling/bsdf/bsdfsample.h"
 #include "renderer/modeling/bsdf/bsdfwrapper.h"
 #include "renderer/modeling/bsdf/diffusebtdf.h"
+#include "renderer/modeling/bsdf/fabricbrdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
 #include "renderer/modeling/bsdf/glossybrdf.h"
 #include "renderer/modeling/bsdf/metalbrdf.h"
@@ -94,6 +95,7 @@ namespace
             m_blinn_brdf = create_and_register_bsdf(BlinnID, "blinn_brdf");
             m_diffuse_btdf = create_and_register_bsdf(TranslucentID, "diffuse_btdf");
             m_disney_brdf = create_and_register_bsdf(DisneyID, "disney_brdf");
+            m_fabric_brdf = create_and_register_bsdf(FabricID, "fabric_brdf");
 
             m_glass_beckmann_bsdf = create_and_register_glass_bsdf(GlassBeckmannID, "beckmann");
             m_glass_ggx_bsdf = create_and_register_glass_bsdf(GlassGGXID, "ggx");
@@ -373,6 +375,7 @@ namespace
         auto_release_ptr<BSDF>      m_blinn_brdf;
         auto_release_ptr<BSDF>      m_diffuse_btdf;
         auto_release_ptr<BSDF>      m_disney_brdf;
+        auto_release_ptr<BSDF>      m_fabric_brdf;
         auto_release_ptr<BSDF>      m_glass_beckmann_bsdf;
         auto_release_ptr<BSDF>      m_glass_ggx_bsdf;
         auto_release_ptr<BSDF>      m_glass_std_bsdf;

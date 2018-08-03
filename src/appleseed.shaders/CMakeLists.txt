@@ -446,6 +446,7 @@ set (src_appleseed_sources
      src/appleseed/as_create_mask.osl
      src/appleseed/as_disney_material.osl
      src/appleseed/as_double_shade.osl
+     src/appleseed/as_fabric.osl
      src/appleseed/as_falloff_angle.osl
      src/appleseed/as_fresnel.osl
      src/appleseed/as_glass.osl
