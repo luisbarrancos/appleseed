@@ -85,6 +85,7 @@ namespace
             m_inputs.declare("reflectance", InputFormatSpectralReflectance);
             m_inputs.declare("reflectance_multiplier", InputFormatFloat, "1.0");
             m_inputs.declare("roughness" , InputFormatFloat, "0.1");
+            m_inputs.declare("energy_compensation", InputFormatFloat, "0.1");
         }
 
         void release() override
@@ -95,6 +96,11 @@ namespace
         const char* get_model() const override
         {
             return Model;
+        }
+
+        size_t compute_input_data_size() const override
+        {
+            return sizeof(InputValues);
         }
 
         void prepare_inputs(
@@ -109,10 +115,10 @@ namespace
 
             values->m_roughness = max(values->m_roughness, shading_point.get_ray().m_max_roughness);
 
-            // Build exponent from roughness, Eq.7.
-            const float inv_m = 1.0f - values->m_roughness;
-            const float sqr_m = square(inv_m);
-            values->m_exponent = fast_ceil(1.0f + 29 * sqr_m);
+            new (&values->m_precomputed) InputValues::Precomputed();
+
+            values->m_precomputed.m_exponent = compute_exponent(values->m_roughness);
+            values->m_precomputed.m_energy_compensation_factor = 0.0f; // WIP
         }
 
         void sample(
@@ -142,7 +148,7 @@ namespace
             float sin_phi = sin(phi);
 
             // Sample theta
-            const float sin_theta = 1.0f - pow(s[1], 1.0f / (values->m_exponent + 1.0f));
+            const float sin_theta = 1.0f - pow(s[1], 1.0f / (values->m_precomputed.m_exponent + 1.0f));
             const float cos_theta = sqrt(max(0.0f, 1.0f - square(sin_theta)));
 
             // compute the halfway vector in world space
@@ -158,14 +164,14 @@ namespace
             const Vector3f& shading_normal = sample.m_shading_basis.get_normal();
 
             const float cos_hn = abs(dot(h, shading_normal));
-            const float cos_ho = abs(dot(h, sample.m_outgoing.get_value()));
+            const float cos_ho = min(1.0f, abs(dot(h, sample.m_outgoing.get_value())));
             const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
             // Evaluate the BRDF
-            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
             const float den = cos_ho * FourPi<float>();
             // And PDF
-            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
             assert(pdf >= 0.0f);
 
             sample.m_incoming = Dual3f(incoming);
@@ -205,10 +211,10 @@ namespace
             const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
             // Evaluate the fabric BRDF
-            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
             const float den = cos_ho * FourPi<float>();
             // And PDF
-            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
             assert(pdf >= 0.0f);
 
             value.m_glossy = values->m_reflectance * num;
@@ -244,9 +250,9 @@ namespace
             const float cos_hn = abs(dot(h, shading_basis.get_normal()));
             const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
-            const float num = pow(1.0f - sin_hn, values->m_exponent);
+            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
             const float den = cos_ho * FourPi<float>();
-            const float pdf = (values->m_exponent + 1.0f) * num / den;
+            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
             assert(pdf >= 0.0f);
 
             // Return the probability density of the sampled direction.
@@ -255,6 +261,15 @@ namespace
 
       private:
         typedef FabricBRDFInputValues InputValues;
+
+        static float compute_exponent(const float roughness)
+        {
+            // Build exponent from roughness, Eq.7.
+            const float inv_m = 1.0f - roughness;
+            const float sqr_m = square(inv_m);
+
+            return fast_ceil(1.0f + 29 * sqr_m);
+        }
 
         static void fabric_brdf(
             const Spectrum&             reflectance,
@@ -273,6 +288,7 @@ namespace
             const Vector3f&             m)
         {
             // WIP, move PDF here
+            /*
             if (exponent == 0.0f)
                 return 0.0f;
 
@@ -286,7 +302,10 @@ namespace
                     RcpTwoPi<float>();
 
             return 1.0f;
+            */
         }
+
+        // Add EC term (WIP)
     };
 
     typedef BSDFWrapper<FabricBRDFImpl> FabricBRDF;
@@ -350,6 +369,22 @@ DictionaryArray FabricBRDFFactory::get_input_metadata() const
                 Dictionary().insert("texture_instance", "Textures"))
             .insert("use", "required")
             .insert("default", "0.1"));
+
+    metadata.push_back(
+        Dictionary()
+            .insert("name", "energy_compensation")
+            .insert("label", "Energy Compensation")
+            .insert("type", "numeric")
+            .insert("min",
+                Dictionary()
+                    .insert("value", "0.0")
+                    .insert("type", "hard"))
+            .insert("max",
+                Dictionary()
+                    .insert("value", "1.0")
+                    .insert("type", "hard"))
+            .insert("use", "optional")
+            .insert("default", "0.0"));
 
     return metadata;
 }

@@ -59,7 +59,15 @@ APPLESEED_DECLARE_INPUT_VALUES(FabricBRDFInputValues)
     Spectrum    m_reflectance;
     float       m_reflectance_multiplier;
     float       m_roughness;
-    float       m_exponent;
+    float       m_energy_compensation;
+
+    struct Precomputed
+    {
+        float   m_exponent;
+        float   m_energy_compensation_factor;
+    };
+
+    Precomputed m_precomputed;
 };
 
 

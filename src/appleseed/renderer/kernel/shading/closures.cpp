@@ -531,6 +531,7 @@ namespace
             OSL::Vec3       N;
             OSL::Vec3       T;
             float           roughness;
+            float           energy_compensation;
         };
 
         static const char* name()
@@ -548,6 +549,15 @@ namespace
             return ScatteringMode::Glossy;
         }
 
+        static void prepare_closure(
+            OSL::RendererServices*      render_services,
+            int                         id,
+            void*                       data)
+        {
+            // Initialize keyword parameter defaults.
+            Params* params = new (data) Params();
+            params->energy_compensation = 0.0f;
+        }
         static void register_closure(OSLShadingSystem& shading_system)
         {
             const OSL::ClosureParam params[] =
@@ -555,10 +565,11 @@ namespace
                 CLOSURE_VECTOR_PARAM(Params, N),
                 CLOSURE_VECTOR_PARAM(Params, T),
                 CLOSURE_FLOAT_PARAM(Params, roughness),
+                CLOSURE_FLOAT_KEYPARAM(Params, energy_compensation, "energy_compensation"),
                 CLOSURE_FINISH_PARAM(Params)
             };
 
-            shading_system.register_closure(name(), id(), params, nullptr, nullptr);
+            shading_system.register_closure(name(), id(), params, &prepare_closure, nullptr);
 
             g_closure_convert_funs[id()] = &convert_closure;
             g_closure_get_modes_funs[id()] = &modes;
@@ -583,6 +594,7 @@ namespace
                     arena);
 
             values->m_roughness = max(p->roughness, 0.001f);
+            values->m_energy_compensation = saturate(p->energy_compensation);
         }
     };
 

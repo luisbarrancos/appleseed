@@ -175,6 +175,9 @@ closure color as_npr_contour(
 closure color as_fabric(
     normal      N,
     vector      T,
-    float       roughness) BUILTIN;
+    float       roughness
+    // keyword arguments:
+    //   float "energy_compensation" = 0    
+    ) BUILTIN;
 
 #endif  // AS_OSL_EXTENSIONS_H
