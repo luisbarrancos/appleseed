@@ -575,12 +575,12 @@ namespace
 
             FabricBRDFInputValues* values =
                 composite_closure.add_closure<FabricBRDFInputValues>(
-                    FabricID,
-                        shading_basis,
-                        weight,
-                        p->N,
-                        p->T,
-                        arena);
+                    id(),
+                    shading_basis,
+                    weight,
+                    p->N,
+                    p->T,
+                    arena);
 
             values->m_roughness = max(p->roughness, 0.001f);
         }
