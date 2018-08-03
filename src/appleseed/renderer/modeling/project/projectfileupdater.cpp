@@ -34,6 +34,7 @@
 #include "renderer/global/globallogger.h"
 #include "renderer/modeling/bsdf/bsdf.h"
 #include "renderer/modeling/bsdf/disneybrdf.h"
+#include "renderer/modeling/bsdf/fabricbrdf.h"
 #include "renderer/modeling/bsdf/glassbsdf.h"
 #include "renderer/modeling/bsdf/glossybrdf.h"
 #include "renderer/modeling/bsdf/metalbrdf.h"

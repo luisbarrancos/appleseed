@@ -51,7 +51,7 @@ namespace renderer
 {
 
 //
-// Microcylinder fabric  BRDF input values.
+// DWA fabric  BRDF input values.
 //
 
 APPLESEED_DECLARE_INPUT_VALUES(FabricBRDFInputValues)

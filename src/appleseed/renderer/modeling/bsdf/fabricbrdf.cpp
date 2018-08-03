@@ -155,10 +155,9 @@ namespace
                         sample.m_geometric_normal);
 
             // Compute dot products
-            const Vector3f& shading_normal =
-                sample.m_shading_basis.get_normal();
+            const Vector3f& shading_normal = sample.m_shading_basis.get_normal();
 
-            const float cos_hn = dot(h, shading_normal);
+            const float cos_hn = abs(dot(h, shading_normal));
             const float cos_ho = abs(dot(h, sample.m_outgoing.get_value()));
             const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
 
@@ -313,7 +312,7 @@ Dictionary FabricBRDFFactory::get_model_metadata() const
     return
         Dictionary()
             .insert("name", Model)
-            .insert("label", "Microcylinder Fabric BRDF");
+            .insert("label", "Fabric BRDF");
 }
 
 DictionaryArray FabricBRDFFactory::get_input_metadata() const
