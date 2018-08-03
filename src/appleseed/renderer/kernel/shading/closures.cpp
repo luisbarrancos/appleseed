@@ -2459,6 +2459,7 @@ void register_closures(OSLShadingSystem& shading_system)
     register_closure<DebugClosure>(shading_system);
     register_closure<DiffuseClosure>(shading_system);
     register_closure<DisneyClosure>(shading_system);
+    register_closure<FabricClosure>(shading_system);
     register_closure<EmissionClosure>(shading_system);
     register_closure<GlassClosure>(shading_system);
     register_closure<GlossyClosure>(shading_system);
