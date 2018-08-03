@@ -292,7 +292,7 @@ shader as_fabric
     color opacity = 1.0 - in_transparency;
 
     out_outColor = in_diffuse_weight * in_color * as_fabric(
-        normalize(Tn),
+        in_bump_normal,
         Tn,
         in_specular_roughness);
 }
