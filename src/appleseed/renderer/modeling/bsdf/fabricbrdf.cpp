@@ -132,53 +132,49 @@ namespace
             if (!ScatteringMode::has_glossy(modes))
                 return;
 
-            sample.m_max_roughness = 1.0f;
+            const InputValues* values = static_cast<const InputValues*>(data);
 
-            // Set the scattering mode
+            sample.m_max_roughness = values->m_roughness;
             sample.m_mode = ScatteringMode::Glossy;
 
             // Compute the incoming direction.
+            const Vector3f& outgoing = sample.m_outgoing.get_value();
+            const Vector3f wo = sample.m_shading_basis.transform_to_local(outgoing);
+
+            // get 2 RNG numbers.
             sampling_context.split_in_place(2, 1);
-            const Vector2f s = sampling_context.next2<Vector2f>();            
-            const InputValues* values = static_cast<const InputValues*>(data);
+            const Vector2f s = sampling_context.next2<Vector2f>();
 
-            // Sample phi
+            // Sample phi and theta.
             const float phi = s[0] * Pi<float>();
-            float cos_phi = cos(phi);
-            float sin_phi = sin(phi);
+            const float cos_phi = cos(phi);
+            const float sin_phi = sin(phi);
 
-            // Sample theta
             const float sin_theta = 1.0f - pow(s[1], 1.0f / (values->m_precomputed.m_exponent + 1.0f));
             const float cos_theta = sqrt(max(0.0f, 1.0f - square(sin_theta)));
 
-            // compute the halfway vector in world space
-            Vector3f h =sample.m_shading_basis.transform_to_parent(
-                    Vector3f::make_unit_vector(
-                        cos_theta, sin_theta, cos_phi, sin_phi));
+            // Generate h and reflected vector.
+            const Vector3f h = Vector3f::make_unit_vector(cos_theta, sin_theta, cos_phi, sin_phi);
+            const Vector3f wi = improve_normalization(reflect(wo, h));
 
-            Vector3f incoming = force_above_surface(
-                        reflect(sample.m_outgoing.get_value(), h),
-                        sample.m_geometric_normal);
+            if (wi.y < 0.0f)
+                return;
 
-            // Compute dot products
-            const Vector3f& shading_normal = sample.m_shading_basis.get_normal();
+            evaluate_fabric_brdf(
+                        values->m_reflectance,
+                        values->m_precomputed.m_exponent,
+                        wi,
+                        wo,
+                        h,
+                        sample.m_value.m_glossy);
 
-            const float cos_hn = abs(dot(h, shading_normal));
-            const float cos_ho = min(1.0f, abs(dot(h, sample.m_outgoing.get_value())));
-            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
+            sample.m_probability = fabric_pdf(
+                        values->m_precomputed.m_exponent,
+                        wo,
+                        h);
 
-            // Evaluate the BRDF
-            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
-            const float den = cos_ho * FourPi<float>();
-            // And PDF
-            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
-            assert(pdf >= 0.0f);
-
-            sample.m_incoming = Dual3f(incoming);
-            sample.m_value.m_glossy = values->m_reflectance * num;
             sample.m_value.m_beauty = sample.m_value.m_glossy;
-            sample.m_probability = pdf;
-
+            sample.m_incoming = Dual3f(sample.m_shading_basis.transform_to_parent(wi));
             sample.compute_reflected_differentials();
         }
 
@@ -196,32 +192,26 @@ namespace
             if (!ScatteringMode::has_glossy(modes))
                 return 0.0f;
 
-            // Compute the halfway vector in world space
-            const Vector3f h = normalize(incoming + outgoing);
-
-            // Compute the BRDF value.
             const InputValues* values = static_cast<const InputValues*>(data);
 
-            // Compute dot products
-            const Vector3f& n = shading_basis.get_normal();
+            const Vector3f wo = shading_basis.transform_to_local(outgoing);
+            const Vector3f wi = shading_basis.transform_to_local(incoming);
+            const Vector3f h = normalize(wi + wo);
 
-            const float cos_on = abs(dot(outgoing, n));
-            const float cos_ho = abs(dot(outgoing, h));
-            const float cos_hn = abs(dot(h, n));
-            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
+            evaluate_fabric_brdf(
+                        values->m_reflectance,
+                        values->m_precomputed.m_exponent,
+                        wi,
+                        wo,
+                        h,
+                        value.m_glossy);
 
-            // Evaluate the fabric BRDF
-            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
-            const float den = cos_ho * FourPi<float>();
-            // And PDF
-            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
-            assert(pdf >= 0.0f);
-
-            value.m_glossy = values->m_reflectance * num;
             value.m_beauty = value.m_glossy;
 
-            // Return the probability density of the sampled direction.
-            return pdf;
+            return fabric_pdf(
+                        values->m_precomputed.m_exponent,
+                        wo,
+                        wi);
         }
 
         float evaluate_pdf(
@@ -238,25 +228,14 @@ namespace
 
             const InputValues* values = static_cast<const InputValues*>(data);
 
-            // get reflectance values
-            //if (values->m_reflectance < epsilon)
-            //    return 0.0f;
+            const Vector3f wo = shading_basis.transform_to_local(outgoing);
+            const Vector3f wi = shading_basis.transform_to_local(incoming);
+            const Vector3f h = normalize(wi + wo);
 
-            // Compute the halfway vector in world space
-            const Vector3f h = normalize(incoming + outgoing);
-
-            // Evaluate the PDF for the halfway vector
-            const float cos_ho = abs(dot(outgoing, h));
-            const float cos_hn = abs(dot(h, shading_basis.get_normal()));
-            const float sin_hn = sqrt(max(0.0f, 1.0f - square(cos_hn)));
-
-            const float num = pow(1.0f - sin_hn, values->m_precomputed.m_exponent);
-            const float den = cos_ho * FourPi<float>();
-            const float pdf = (values->m_precomputed.m_exponent + 1.0f) * num / den;
-            assert(pdf >= 0.0f);
-
-            // Return the probability density of the sampled direction.
-            return pdf;
+            return fabric_pdf(
+                        values->m_precomputed.m_exponent,
+                        wo,
+                        h);
         }
 
       private:
@@ -271,38 +250,59 @@ namespace
             return fast_ceil(1.0f + 29 * sqr_m);
         }
 
-        static void fabric_brdf(
+        static void evaluate_fabric_brdf(
             const Spectrum&             reflectance,
             const float                 exponent,
             const Vector3f&             wi,
             const Vector3f&             wo,
-            const Vector3f&             m,
+            const Vector3f&             h,
             Spectrum&                   value)
         {
-            ; // move brdf here (TODO)
+            const float cos_theta = h.y;
+
+            if (cos_theta == 0.0f)
+            {
+                value.set(0.0f);
+                return;
+            }
+
+            const float denom = abs(4.0f * wo.y * wi.y);
+
+            if (denom == 0.0f)
+            {
+                value.set(0.0f);
+                return;
+            }
+
+            // Distribution for fiber, eq.4.
+            const float sin_theta = sqrt(max(0.0f, 1.0f - square(cos_theta)));
+            const float brdf = pow(1.0f - sin_theta, exponent);
+
+            value = reflectance * brdf / denom;
         }
 
         static float fabric_pdf(
-            const float                 exponent,
-            const Vector3f&             wo,
-            const Vector3f&             m)
+                const float         exponent,
+                const Vector3f&     wo,
+                const Vector3f&     h)
         {
-            // WIP, move PDF here
-            /*
-            if (exponent == 0.0f)
+            const float cos_theta = h.y;
+
+            if (cos_theta == 0.0f)
                 return 0.0f;
 
-            const float cos_wom = dot(wo, m);
-            if (cos_wom == 0.0f)
+            const float cos_ho = dot(h, wo);
+
+            if (cos_ho == 0.0f)
                 return 0.0f;
 
-            const float jacobian = 1.0f / (4.0f * abs(cos_wom));
+            // PDF transformed from theta_h to theta_i domain, eq.11.
+            const float jacobian = 1.0f / (4.0f * abs(cos_ho));
 
-            const float normalization = (exponent + 1.0f) *
-                    RcpTwoPi<float>();
+            const float sin_theta = sqrt(max(0.0f, 1.0f - square(cos_theta)));
+            const float pdf = pow(1.0f - sin_theta, exponent);
 
-            return 1.0f;
-            */
+            return pdf * ((exponent + 1) / (4.0f * Pi<float>() * abs(cos_ho)));
         }
 
         // Add EC term (WIP)
