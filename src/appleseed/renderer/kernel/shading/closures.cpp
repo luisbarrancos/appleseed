@@ -593,6 +593,8 @@ namespace
                     p->T,
                     arena);
 
+            values->m_reflectance.set(1.0f);
+            values->m_reflectance_multiplier = 1.0f;
             values->m_roughness = max(p->roughness, 0.001f);
             values->m_energy_compensation = saturate(p->energy_compensation);
         }

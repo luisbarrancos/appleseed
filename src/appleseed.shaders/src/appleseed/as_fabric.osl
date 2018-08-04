@@ -56,75 +56,14 @@ shader as_fabric
         string label = "Diffuse Weight",
         string page = "Diffuse"
     ]],
-    float in_scattering = 0.0
+    float in_roughness = 0.2
     [[
-        string as_maya_attribute_name = "scattering",
-        string as_maya_attribute_short_name = "sca",
+        string as_maya_attribute_name = "roughness",
+        string as_maya_attribute_short_name = "rro",
         float min = 0.0,
         float max = 1.0,
-        string label = "Scattering",
-        string page = "Diffuse"
-    ]],
-    color in_specular_color = color(0.5)
-    [[
-        string as_maya_attribute_name = "specularColor",
-        string as_maya_attribute_short_name = "scc",
-        string label = "Specular Color",
+        string label = "Roughness",
         string page = "Specular"
-    ]],
-    float in_specular_weight = 1.0
-    [[
-        string as_maya_attribute_name = "specularWeight",
-        string as_maya_attribute_short_name = "ksw",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Specular Weight",
-        string page = "Specular",
-        int divider = 1
-    ]],
-    float in_ior = 1.5
-    [[
-        string as_maya_attribute_name = "ior",
-        string as_maya_attribute_short_name = "io",
-        float min = 1.0,
-        float max = 2.5,
-        string label = "IOR",
-        string page = "Specular",
-        string help = "Index of refraction."
-    ]],
-    int in_distribution = 0
-    [[
-        string as_maya_attribute_name = "distribution",
-        string as_maya_attribute_short_name = "dst",
-        string widget = "mapper",
-        string options = "Beckmann:0|GGX:1|GTR:2|Student's t-MDF:3",
-        string label = "Distribution",
-        string page = "Specular",
-        int as_maya_attribute_connectable = 0,
-        int as_maya_attribute_keyable = 0,
-        int as_maya_attribute_hidden = 1,
-        int as_blender_input_socket = 0,
-        int gafferNoduleLayoutVisible = 0,
-        int divider = 1
-    ]],
-    float in_specular_roughness = 0.2
-    [[
-        string as_maya_attribute_name = "specularRoughness",
-        string as_maya_attribute_short_name = "sro",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Specular Roughness",
-        string page = "Specular"
-    ]],
-    float in_specular_spread = 0.25
-    [[
-        string as_maya_attribute_name = "specularSpread",
-        string as_maya_attribute_short_name = "spr",
-        float min = 0.0,
-        float max = 1.0,
-        string label = "Specular Spread",
-        string page = "Specular",
-        string help = "Specular highlights spread, only valid for GTR, Student's t-MDF."
     ]],
     normal in_bump_normal = N
     [[
@@ -261,38 +200,10 @@ shader as_fabric
         return;
     }
 
-    string distribution;
-
-    if (in_distribution == 0)
-    {
-        distribution = "beckmann";
-    }
-    else if (in_distribution == 1)
-    {
-        distribution = "ggx";
-    }
-    else if (in_distribution == 2)
-    {
-        distribution = "gtr1";
-    }
-    else if (in_distribution == 3)
-    {
-        distribution = "std";
-    }
-    else
-    {
-#ifdef DEBUG
-        string shadername = "";
-        getattribute("shader:shadername", shadername);
-        warning("[WARNING]: Invalid MDF in %s,\t%s:%d\n",
-                shadername, __FILE__, __LINE__);
-#endif
-    }
-
     color opacity = 1.0 - in_transparency;
 
-    out_outColor = in_diffuse_weight * in_color * as_fabric(
+    out_outColor = opacity * in_diffuse_weight * in_color * as_fabric(
         in_bump_normal,
         Tn,
-        in_specular_roughness);
+        in_roughness);
 }
