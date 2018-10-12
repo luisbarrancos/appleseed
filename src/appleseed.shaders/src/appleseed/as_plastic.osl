@@ -211,14 +211,6 @@ shader as_plastic
     ]]
 )
 {
-    int compute_transparency = (max(in_transparency) > 0.0) ? 1 : 0;
-
-    if (compute_transparency)
-    {
-        out_outTransparency = in_transparency * transparent();
-        out_outColor += out_outTransparency;
-    }
-
     if (raytype("shadow") || raytype("transparency"))
     {
         return;
@@ -227,17 +219,37 @@ shader as_plastic
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
-    if (!status || ray_depth > in_maximum_ray_depth)
+    if (!status)
     {
         return;
     }
 
     if (in_enable_matte)
     {
-        out_outMatteOpacity = in_matte_opacity *
-            in_matte_opacity_color * holdout();
+        if (ray_depth > 0)
+        {
+            return;
+        }
+
+        out_outMatteOpacity = as_matte_surface(
+            in_matte_opacity_color,
+            in_matte_opacity);
 
         out_outColor += out_outMatteOpacity;
+        return;
+    }
+
+    if (ray_depth > in_maximum_ray_depth)
+    {
+        return;
+    }
+    
+    int compute_transparency = (max(in_transparency) > 0.0) ? 1 : 0;
+
+    if (compute_transparency)
+    {
+        out_outTransparency = in_transparency * transparent();
+        out_outColor += out_outTransparency;
     }
 
     if (in_transparency == 1.0)

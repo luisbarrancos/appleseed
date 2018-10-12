@@ -249,25 +249,37 @@ shader as_blackbody
         return;
     }
 
-    if (in_incandescence_amount == 0.0)
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
-    if (!status || ray_depth > in_maximum_ray_depth)
+    if (!status)
     {
         return;
     }
 
     if (in_enable_matte)
     {
-        out_matte_opacity = in_matte_opacity *
-            in_matte_opacity_color * holdout();
+        if (ray_depth > 0)
+        {
+            return;
+        }
+
+        out_matte_opacity = as_matte_surface(
+            in_matte_opacity_color,
+            in_matte_opacity);
 
         out_color += out_matte_opacity;
+        return;
+    }
+
+    if (ray_depth > in_maximum_ray_depth)
+    {
+        return;
+    }
+    
+    if (in_incandescence_amount == 0.0)
+    {
+        return;
     }
 
     float transmittance = 1.0;

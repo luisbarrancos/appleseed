@@ -302,19 +302,29 @@ shader as_metal
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
-    if (!status || ray_depth > in_maximum_ray_depth)
+    if (!status)
     {
         return;
     }
 
     if (in_enable_matte)
     {
-        out_outMatteOpacity = in_matte_opacity *
-            in_matte_opacity_color * holdout();
+        if (ray_depth > 0)
+        {
+            out_outMatteOpacity = as_matte_surface(
+                in_matte_opacity_color,
+                in_matte_opacity);
 
-        out_outColor += out_outMatteOpacity;
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
     }
 
+    if (ray_depth > in_maximum_ray_depth)
+    {
+        return;
+    }
+    
     string distribution;
 
     if (in_distribution == 0)

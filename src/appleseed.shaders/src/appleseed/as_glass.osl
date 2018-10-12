@@ -289,18 +289,25 @@ shader as_glass
         return;
     }
 
-    if (in_enable_matte)
-    {
-        out_outMatteOpacity = in_matte_opacity *
-            in_matte_opacity_color * holdout();
-
-        out_outColor += out_outMatteOpacity;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
-    if (!status || ray_depth > in_maximum_ray_depth)
+    if (in_enable_matte)
+    {
+        if (ray_depth > 0)
+        {
+            return;
+        }
+
+        out_outMatteOpacity = as_matte_surface(
+            in_matte_opacity_color,
+            in_matte_opacity);
+
+        out_outColor += out_outMatteOpacity;
+        return;
+    }
+
+    if (ray_depth > in_maximum_ray_depth)
     {
         return;
     }
