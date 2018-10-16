@@ -271,11 +271,6 @@ shader as_subsurface
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
@@ -284,13 +279,18 @@ shader as_subsurface
         return;
     }
 
-    if (in_enable_matte)
+    if (ray_depth > in_maximum_ray_depth)
     {
-        if (ray_depth > 0)
-        {
-            return;
-        }
+        return;
+    }
 
+    if (raytype("shadow") || raytype("transparency"))
+    {
+        return; // no transparency (presence) in this shader
+    }
+    
+    if (in_enable_matte && raytype("camera"))
+    {
         out_outMatteOpacity = as_matte_surface(
             in_matte_opacity_color,
             in_matte_opacity);
@@ -299,45 +299,44 @@ shader as_subsurface
         return;
     }
 
-    string sss_profile;
+    if (ray_depth <= in_sss_maximum_ray_depth &&
+        in_sss_amount > 0.0 && max(in_color) > 0.0)
+    {
+        string sss_profile;
 
-    if (in_sss_profile == 0)
-    {
-        sss_profile = "better_dipole";
-    }
-    else if (in_sss_profile == 1)
-    {
-        sss_profile = "directional_dipole";
-    }
-    else if (in_sss_profile == 2)
-    {
-        sss_profile = "gaussian";
-    }
-    else if (in_sss_profile == 3)
-    {
-        sss_profile = "normalized_diffusion";
-    }
-    else if (in_sss_profile == 4)
-    {
-        sss_profile = "standard_dipole";
-    }
-    else
-    {
-        sss_profile = "randomwalk";
-    }
+        if (in_sss_profile == 0)
+        {
+            sss_profile = "better_dipole";
+        }
+        else if (in_sss_profile == 1)
+        {
+            sss_profile = "directional_dipole";
+        }
+        else if (in_sss_profile == 2)
+        {
+            sss_profile = "gaussian";
+        }
+        else if (in_sss_profile == 3)
+        {
+            sss_profile = "normalized_diffusion";
+        }
+        else if (in_sss_profile == 4)
+        {
+            sss_profile = "standard_dipole";
+        }
+        else
+        {
+            sss_profile = "randomwalk";
+        }
 
-    normal Nn = normalize(in_bump_normal);
-
-    if (in_sss_amount * max(in_color) > 0.0)
-    {
-        color albedo = clamp(in_sss_amount * in_color, 0.01, 0.99);
+        normal Nn = normalize(in_bump_normal);
 
         if (sss_profile == "randomwalk")
         {
             out_outColor += as_subsurface(
                 sss_profile,
                 Nn,
-                albedo,
+                clamp(in_sss_amount * in_color, 0.01, 0.99), // albedo
                 in_sss_mfp_scale * in_sss_mfp,
                 in_ior,
                 "fresnel_weight", in_fresnel_weight);
@@ -347,7 +346,7 @@ shader as_subsurface
             out_outColor += as_subsurface(
                 sss_profile,
                 Nn,
-                albedo,
+                clamp(in_sss_amount * in_color, 0.01, 0.99), // albedo
                 in_sss_mfp_scale * in_sss_mfp,
                 in_ior,
                 "fresnel_weight", in_fresnel_weight);

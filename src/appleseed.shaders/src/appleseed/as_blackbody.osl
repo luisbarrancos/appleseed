@@ -244,11 +244,6 @@ shader as_blackbody
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
@@ -257,35 +252,31 @@ shader as_blackbody
         return;
     }
 
-    if (in_enable_matte)
-    {
-        if (ray_depth > 0)
-        {
-            return;
-        }
-
-        out_matte_opacity = as_matte_surface(
-            in_matte_opacity_color,
-            in_matte_opacity);
-
-        out_color += out_matte_opacity;
-        return;
-    }
-
     if (ray_depth > in_maximum_ray_depth)
     {
         return;
     }
-    
-    if (in_incandescence_amount == 0.0)
+
+    if (raytype("shadow") || raytype("transparency"))
     {
+        return; // no transparency in this shader yet
+    }
+    
+    if (in_enable_matte && raytype("camera"))
+    {
+        out_outMatteOpacity = as_matte_surface(
+            in_matte_opacity_color,
+            in_matte_opacity);
+
+        out_outColor += out_outMatteOpacity;
         return;
     }
-
+    
     float transmittance = 1.0;
 
     if (in_specular_amount > 0.0 && in_ior > 1.0)
     {
+
         // Dielectric coating, so the Schlick approximation suffices.
         vector In = normalize(I);
         normal Nn = normalize(in_bump_normal);
@@ -309,12 +300,7 @@ shader as_blackbody
                 "energy_compensation", 1.0);
     }
 
-    if (transmittance <= EPS)
-    {
-        return;
-    }
-
-    if (raytype("light"))
+    if (raytype("light") && transmittance > 0 && in_incandescence_amount > 0)
     {
         color edf_color = color(0);
 

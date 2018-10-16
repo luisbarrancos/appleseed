@@ -750,11 +750,6 @@ shader as_toon
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
@@ -763,13 +758,25 @@ shader as_toon
         return;
     }
 
-    if (in_enable_matte)
+    if (ray_depth > in_maximum_ray_depth)
     {
-        if (ray_depth > 0)
-        {
-            return;
-        }
+        return;
+    }
 
+    if (raytype("shadow"))
+    {
+        out_outColor = in_transparency * transparent();
+        return;
+    }
+
+    if (raytype("transparency"))
+    {
+        out_outTransparency = in_transparency * transparent();
+        out_outColor += out_outTransparency;
+    }
+
+    if (in_enable_matte && raytype("camera"))
+    {
         out_outMatteOpacity = as_matte_surface(
             in_matte_opacity_color,
             in_matte_opacity);
@@ -777,19 +784,8 @@ shader as_toon
         out_outColor += out_outMatteOpacity;
         return;
     }
-
-    if (ray_depth > in_maximum_ray_depth)
-    {
-        return;
-    }
-
-    if (max(in_transparency) > 0.0)
-    {
-        out_outTransparency = in_transparency * transparent();
-        out_outColor += out_outTransparency;
-    }
     
-    if (in_transparency == 1.0)
+    if (max(in_transparency) == 1.0)
     {
         return;
     }
@@ -823,9 +819,6 @@ shader as_toon
             diffuseN = normalize(in_bump_normal);
             specularN = normalize(in_specular_normal);
         }
-
-        int ray_depth = 0;
-        int status = getattribute("path:ray_depth", ray_depth);
 
         if (ray_depth <= in_diffuse_ray_depth)
         {
@@ -981,8 +974,6 @@ shader as_toon
         }
 
         // Rim lighting, only for 1 bounce.
-        int ray_depth = 0;
-        int status = getattribute("path:ray_depth", ray_depth);
 
         if (ray_depth < 2 && in_rim_weight > 0.0)
         {
@@ -1090,14 +1081,5 @@ shader as_toon
             in_occlusion_threshold,
             in_contour_creases,
             in_crease_threshold);
-
-        // Matte holdouts, masks in the final "npr" path.
-        if (in_enable_matte)
-        {
-            out_outMatteOpacity = in_matte_opacity *
-                in_matte_opacity_color * holdout();
-
-            out_outColor += out_outMatteOpacity;
-        }
     }
 }

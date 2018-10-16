@@ -211,7 +211,6 @@ shader as_plastic
     ]]
 )
 {
-    // 1st check ray depth and status, invalid status, something borked, exit
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
@@ -220,64 +219,37 @@ shader as_plastic
         return;
     }
 
-    // we're over allowed user set bounces, bailout
     if (ray_depth > in_maximum_ray_depth)
     {
         return;
     }
 
-    // first the shadow ray, do a test here with facing ratio for incident
-    // light vector to have a classic fake caustic semi-transparent object
-    // shadow for **testing purposes** - not to be included.
-    // Nothing else is needed in the shadow ray, so exit
     if (raytype("shadow"))
     {
-        out_outColor = max(0.0, dot(-I, N)) * in_transparency * transparent();
+        out_outColor = in_transparency * transparent();
         return;
     }
- 
-    // See if we require transparency, if so, for "transparency" rays, then
-    // proceed to evaluate the transparent() term. This is **not** related to
-    // shadow rays, but to camera and secondary+ rays.
-    // Do **not** bailout, since reflections of a semi-transparent object
-    // obviously must reflect the semi-transparent object, not an opaque
-    // object.
-    //
-    int compute_transparency = (max(in_transparency) > 0.0) ? 1 : 0;
 
-    if (compute_transparency && raytype("transparency"))
+    if (raytype("transparency"))
     {
         out_outTransparency = in_transparency * transparent();
         out_outColor += out_outTransparency;
     }
 
-    // Now check the matte requirement, which is only for camera rays. No
-    // ray depth test is required here since camera rays are not for ray 
-    // depth > 0.
-    // Once computed, bailout - RGB and A was overriden for this.
-    if (in_enable_matte && raytype("camera") && ray_depth < 1)
+    if (in_enable_matte && raytype("camera"))
     {
         out_outMatteOpacity = as_matte_surface(
             in_matte_opacity_color,
             in_matte_opacity);
 
-        // one would expect the alpha to be set to the explicit matte opacity
-        // value, but it seems the value is the result of the product of
-        // matte_opacity and the transparency result from transparent().
-        //
         out_outColor += out_outMatteOpacity;
         return;
     }
 
-    // Now proceed with the rest of the shader, but test the value of 
-    // transparency first. If transparency is 1.0, nothing is to be shaded,
-    // so bailout.
     if (in_transparency == 1.0)
     {
         return;
     }
-
-    // That was not the case, so we proceed with regular shading here.
 
     string distribution;
 

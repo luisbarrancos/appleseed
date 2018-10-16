@@ -286,19 +286,19 @@ shader as_glass
 {
     if (raytype("shadow") || raytype("transparency"))
     {
-        return;
+        return; // no transparency (presence) controls in this shader
     }
 
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
-
-    if (in_enable_matte)
+    
+    if (ray_depth > in_maximum_ray_depth)
     {
-        if (ray_depth > 0)
-        {
-            return;
-        }
+        return;
+    }
 
+    if (in_enable_matte && raytype("camera"))
+    {
         out_outMatteOpacity = as_matte_surface(
             in_matte_opacity_color,
             in_matte_opacity);
@@ -306,12 +306,7 @@ shader as_glass
         out_outColor += out_outMatteOpacity;
         return;
     }
-
-    if (ray_depth > in_maximum_ray_depth)
-    {
-        return;
-    }
-
+    
     if (max(in_reflection_tint) == 0.0 && max(in_refraction_tint) == 0.0)
     {
         return;

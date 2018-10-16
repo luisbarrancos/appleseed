@@ -559,26 +559,11 @@ shader as_standard_surface
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
-    if (in_enable_matte)
+    if (!status)
     {
-        if (ray_depth > 0)
-        {
-            return;
-        }
-
-        out_outMatteOpacity = as_matte_surface(
-            in_matte_opacity_color,
-            in_matte_opacity);
-
-        out_outColor += out_outMatteOpacity;
         return;
     }
 
@@ -587,14 +572,28 @@ shader as_standard_surface
         return;
     }
 
-    int compute_transparency = (max(in_transparency) > 0.0) ? 1 : 0;
+    if (raytype("shadow"))
+    {
+        out_outColor = in_transparency * transparent();
+        return;
+    }
 
-    if (compute_transparency)
+    if (raytype("transparency"))
     {
         out_outTransparency = in_transparency * transparent();
         out_outColor += out_outTransparency;
     }
-    
+
+    if (in_enable_matte && raytype("camera"))
+    {
+        out_outMatteOpacity = as_matte_surface(
+            in_matte_opacity_color,
+            in_matte_opacity);
+
+        out_outColor += out_outMatteOpacity;
+        return;
+    }
+
     if (in_transparency == 1.0)
     {
         return;

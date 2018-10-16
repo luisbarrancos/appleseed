@@ -256,11 +256,6 @@ shader as_disney_material
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        return;
-    }
-
     int ray_depth = 0;
     int status = getattribute("path:ray_depth", ray_depth);
 
@@ -269,13 +264,18 @@ shader as_disney_material
         return;
     }
 
-    if (in_enable_matte)
+    if (ray_depth > in_maximum_ray_depth)
     {
-        if (ray_depth > 0)
-        {
-            return;
-        }
+        return;
+    }
 
+    if (raytype("shadow") || raytype("transparency"))
+    {
+        return; // no transparency controls on this shader yet
+    }
+
+    if (in_enable_matte && raytype("camera"))
+    {
         out_outMatteOpacity = as_matte_surface(
             in_matte_opacity_color,
             in_matte_opacity);
@@ -283,12 +283,7 @@ shader as_disney_material
         out_outColor += out_outMatteOpacity;
         return;
     }
-
-    if (ray_depth > in_maximum_ray_depth)
-    {
-        return;
-    }
-
+    
     normal Nn = normalize(in_bump_normal);
     vector tangent = Tn;
 
