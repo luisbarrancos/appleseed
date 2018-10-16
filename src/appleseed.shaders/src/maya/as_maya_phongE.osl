@@ -214,25 +214,61 @@ shader as_maya_phongE
     ]]
 )
 {
-    if (raytype("shadow") || raytype("transparency"))
-    {
-        color transparency = in_transparency;
+    int ray_depth = 0;
+    int status = getattribute("path:ray_depth", ray_depth);
 
-        // Shadow attenuation: 0=constant, 1=fake caustics.
+    if (!status)
+    {
+        return;
+    }
+    
+    if (raytype("shadow"))
+    {
+        // Shadow attenuation, 0=constant, 1=fake caustics.
         if (in_refractions && max(in_transparency) > 0.0)
         {
-            transparency = mix(
-                transparency,
-                abs(dot(-normalize(I), normalize(in_normalCamera))),
-                in_shadowAttenuation
-                );
+            out_outColor = mix(
+                in_transparency,
+                abs(dot(normalize(I), normalize(in_normalCamera))),
+                in_shadowAttenuation) * transparent();
         }
+        return;
+    }
 
-        if (max(transparency) > 0.0)
+    if (raytype("transparency") && !in_refractions)
+    {
+        out_outTransparency = in_transparency * transparent();
+        out_outColor = out_outTransparency;
+    }
+
+    if (raytype("camera"))
+    {
+        // There is no switch to toggle mattes on or off, so use the default
+        // matte opacity mode (2) and opacity gain (1.0) as normal shading, and
+        // deal with mattes otherwise. This is best we can do for these nodes.
+
+        if (in_matteOpacityMode == 0)
         {
-            out_outTransparency = transparency * transparent();
-            out_outColor = out_outTransparency;
+            out_outMatteOpacity = as_matte_surface(color(0), 0.0);
+            out_outColor += out_outMatteOpacity;
+            return;
         }
+        else if (in_matteOpacityMode == 1)
+        {
+            out_outMatteOpacity = as_matte_surface(in_color, 1.0);
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
+        else if (in_matteOpacityMode == 2 && in_matteOpacity < 1.0)
+        {
+            out_outMatteOpacity = as_matte_surface(in_color, in_matteOpacity);
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
+    }
+
+    if (in_transparency == 1.0)
+    {
         return;
     }
 
@@ -252,22 +288,11 @@ shader as_maya_phongE
                         translucent(Nn);
     }
 
-    if (in_refractions)
+    if (in_refractions && ray_depth < in_refractionLimit &&
+        in_refractiveIndex > 1.0 && max(in_transparency) > 0.0)
     {
-        int ray_depth = 0;
-        int status = getattribute("path:ray_depth", ray_depth);
-
-        if (status && ray_depth <= in_refractionLimit)
-        {
-            // Maya associates transparency with the BTDF
-            out_outColor += in_transparency *
-                refraction(Nn, in_refractiveIndex);
-        }
-    }
-    else if (max(in_transparency) > 0.0)
-    {
-        out_outTransparency = in_transparency * transparent();
-        out_outColor += out_outTransparency;
+        // Maya associates the transparency with the BTDF.
+        out_outColor += in_transparency * refraction(Nn, in_refractiveIndex);
     }
 
     if (max(in_specularColor) > 0.0)

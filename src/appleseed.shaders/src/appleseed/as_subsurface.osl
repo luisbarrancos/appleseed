@@ -279,7 +279,7 @@ shader as_subsurface
         return;
     }
 
-    if (ray_depth > in_maximum_ray_depth)
+    if (ray_depth > in_sss_maximum_ray_depth)
     {
         return;
     }
@@ -298,6 +298,8 @@ shader as_subsurface
         out_outColor += out_outMatteOpacity;
         return;
     }
+    
+    normal Nn = normalize(in_bump_normal);
 
     if (ray_depth <= in_sss_maximum_ray_depth &&
         in_sss_amount > 0.0 && max(in_color) > 0.0)
@@ -328,8 +330,6 @@ shader as_subsurface
         {
             sss_profile = "randomwalk";
         }
-
-        normal Nn = normalize(in_bump_normal);
 
         if (sss_profile == "randomwalk")
         {

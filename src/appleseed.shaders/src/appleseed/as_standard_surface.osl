@@ -599,6 +599,8 @@ shader as_standard_surface
         return;
     }
 
+    int compute_transparency = (max(in_transparency) > 0) ? 1 : 0;
+    
     color opacity = 1.0 - in_transparency;
 
     // Coating first, with full absorption substrate is not lit.

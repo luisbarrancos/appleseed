@@ -173,34 +173,58 @@ shader as_maya_lambert
     {
         return;
     }
-
+    
     if (raytype("shadow"))
     {
-        // Shadow attenuation, 0=constant, 1=fake caustics
+        // Shadow attenuation, 0=constant, 1=fake caustics.
         if (in_refractions && max(in_transparency) > 0.0)
         {
             out_outColor = mix(
                 in_transparency,
                 abs(dot(normalize(I), normalize(in_normalCamera))),
-                in_shadowAttenuation);
+                in_shadowAttenuation) * transparent();
         }
         return;
     }
 
-    if (raytype("transparency") && max(in_transparency) > 0.0)
+    if (raytype("transparency") && !in_refractions)
     {
         out_outTransparency = in_transparency * transparent();
         out_outColor = out_outTransparency;
     }
 
-    if (raytype("camera") && in_matteOpacityMode == 0)
+    if (raytype("camera"))
     {
-        out_outMatteOpacity = as_matte_surface(color(0), 0.0); // black hole
-        out_outColor += out_outMatteOpacity;
+        // There is no switch to toggle mattes on or off, so use the default
+        // matte opacity mode (2) and opacity gain (1.0) as normal shading, and
+        // deal with mattes otherwise. This is best we can do for these nodes.
+
+        if (in_matteOpacityMode == 0)
+        {
+            out_outMatteOpacity = as_matte_surface(color(0), 0.0);
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
+        else if (in_matteOpacityMode == 1)
+        {
+            out_outMatteOpacity = as_matte_surface(in_color, 1.0);
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
+        else if (in_matteOpacityMode == 2 && in_matteOpacity < 1.0)
+        {
+            out_outMatteOpacity = as_matte_surface(in_color, in_matteOpacity);
+            out_outColor += out_outMatteOpacity;
+            return;
+        }
+    }
+
+    if (in_transparency == 1.0)
+    {
         return;
     }
 
-    color opacity = 1.0 - in_transparency;
+    color opacity = 1.0 - in_transparency;   
 
     if (raytype("light") && max(in_incandescence) > 0.0)
     {
@@ -216,33 +240,10 @@ shader as_maya_lambert
                         translucent(Nn);
     }
 
-    if (in_refractions)
+    if (in_refractions && ray_depth <= in_refractionLimit &&
+        in_refractiveIndex > 1.0 && max(in_transparency) > 0.0)
     {
-        if (status && ray_depth <= in_refractionLimit)
-        {
-            // Maya associates transparency with the BTDF
-            out_outColor += in_transparency *
-                refraction(Nn, in_refractiveIndex);
-        }
-    }
-
-    if (raytype("camera"))
-    {
-        if (in_matteOpacityMode == 1)
-        {
-            out_outMatteOpacity = as_matte_surface(
-                out_outColor,
-                1.0);
-
-            out_outColor += out_outMatteOpacity;
-        }
-        else if (in_matteOpacityMode == 2)
-        {
-            out_outMatteOpacity = as_matte_surface(
-                out_outColor,
-                in_matteOpacity);
-
-            out_outColor += out_outMatteOpacity;
-        }
+        // Maya associates transparency with the BTDF
+        out_outColor += in_transparency * refraction(Nn, in_refractiveIndex);
     }
 }

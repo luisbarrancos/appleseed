@@ -758,11 +758,6 @@ shader as_toon
         return;
     }
 
-    if (ray_depth > in_maximum_ray_depth)
-    {
-        return;
-    }
-
     if (raytype("shadow"))
     {
         out_outColor = in_transparency * transparent();
