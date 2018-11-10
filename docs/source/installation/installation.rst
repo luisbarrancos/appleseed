@@ -1,8 +1,8 @@
-.. _label_installation:
+.. _label_as_installation:
 
-************
+############
 Installation
-************
+############
 
 .. dummy directive:
 

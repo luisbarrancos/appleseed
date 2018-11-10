@@ -1,4 +1,4 @@
-.. _label_contributing:
+.. _label_as_contributing:
 
 *************************
 Contributing to appleseed

@@ -1,8 +1,8 @@
-.. _label_features:
+.. _label_as_eatures:
 
-********
+########
 Features
-********
+########
 
 Appleseed supports amongst other features
 
@@ -15,8 +15,9 @@ Appleseed supports amongst other features
 
 .. _label_features_ecosystem:
 
+*********
 Ecosystem
-=========
+*********
 
 Along with the core renderer, the team is actively developing high quality integrations
 
@@ -28,13 +29,15 @@ appleseed is also the default rendering engine of `Image Engine’s Gaffer <http
 
 .. _label_features_detailed_features_list:
 
+**********************
 Detailed Features List
-======================
+**********************
 
 .. _label_features_light_transport:
 
+===============
 Light Transport
----------------
+===============
 
  * Unidirectional Path Tracing [#]_
  * Stochastic Progressive Photon Mapping [#]_
@@ -42,8 +45,9 @@ Light Transport
 
 .. _label_features_reflection_models:
 
+=================
 Reflection Models
------------------
+=================
 
  * Lambertian BRDF (purely diffuse)
  * Specular BRDF (perfect mirror)
@@ -66,8 +70,9 @@ Reflection Models
 
 .. _label_features_subsurface_scattering:
 
+=====================
 Subsurface Scattering
----------------------
+=====================
 
 appleseed provides state-of-the art raytraced, animation-friendly subsurface scattering, fully exposed to OSL.
 There is no precomputation and it's available in interactive rendering. 
@@ -76,7 +81,7 @@ SSS sets are also supported.
 .. _label_features_subsurface_scattering_profiles:
 
 Subsurface Scattering Profiles
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+******************************
 
 The following subsurface scattering profiles are available
 
@@ -89,8 +94,9 @@ The following subsurface scattering profiles are available
 
 .. _label_features_volume_rendering:
 
+================
 Volume rendering
-----------------
+================
 
  * Single scattering
  * Multiple scattering
@@ -100,8 +106,9 @@ Volume rendering
 
 .. _label_features_camera_models:
 
+=============
 Camera Models
--------------
+=============
 
  * Pinhole camera
  * Spherical camera
@@ -111,8 +118,9 @@ Camera Models
 
 .. _label_features_motion_blur:
 
+===========
 Motion Blur
------------
+===========
 
  * Camera motion blur
  * Transformation motion blur
@@ -121,8 +129,9 @@ Motion Blur
 
 .. _label_features_light_source_models:
 
+===================
 Light Source Models
--------------------
+===================
 
  * Point light
  * Spot light
@@ -141,8 +150,9 @@ Light Source Models
 
 .. _label_features_production_features:
 
+===================
 Production Features
--------------------
+===================
 
 Besides the extensive list of features mentioned, appleseed provides
 
@@ -169,8 +179,9 @@ Besides the extensive list of features mentioned, appleseed provides
 
 .. _label_features_interoperability:
 
+================
 Interoperability
-----------------
+================
 
  * Windows, Linux and macOS (64-bit)
  * OBJ geometry files
@@ -180,8 +191,9 @@ Interoperability
 
 .. _label_features_performance
 
+===========
 Performance
------------
+===========
 
  * Multithreaded, scalable
  * SSE, SSE2, SSE4.2 vectorization
@@ -192,8 +204,9 @@ Performance
 
 .. _label_features_tools:
 
+=====
 Tools
------
+=====
 
  * Full featured graphical tool for scene editing (appleseed.studio)
  * Command line renderer
@@ -203,8 +216,9 @@ Tools
 
 .. _label_features_hackability
 
+===========
 Hackability
------------
+===========
 
  * 100% open source, MIT license
  * Exceptionally clean, fully reviewed code

@@ -24,5 +24,11 @@ Contents
    :glob:
    :maxdepth: 2
 
-   source/*
+   features/*
+   installation/*
+   usage/*
+   plugins/*
+   reference/*
+   contributing/*
+
 
