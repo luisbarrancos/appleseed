@@ -22,13 +22,13 @@ Contents
 .. toctree::
    :name: mastertoc
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
 
-   features/*
-   installation/*
-   usage/*
-   plugins/*
-   reference/*
-   contributing/*
+   features/features.rst
+   installation/installation.rst
+   usage/usage.rst
+   plugins/plugins.rst
+   reference/reference.rst
+   contributing/contributing.rst
 
 

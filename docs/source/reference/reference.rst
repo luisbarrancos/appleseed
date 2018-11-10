@@ -1,36 +1,16 @@
-.. _label_as_reference:
+.. _label_reference:
 
-#########
+*********
 Reference
-#########
+*********
 
-************************
-Scene Description Format
-************************
+.. toctree::
+   :name: referencetoc
+   :glob:
+   :maxdepth: 0
 
-Scene description format
-
-**********
-Python API
-**********
-
-Python API
-
-======================
-Bundled Python Plugins
-======================
-
-bundled python plugins and examples
-
-*******
-C++ API
-*******
-
-C++ API
-
-===================
-Bundled C++ Plugins
-===================
-
-Bundled C++ plugins, example procedurals
+   scene_description_format/scene_format.rst
+   osl_shaders/osl_shaders.rst
+   python_api/python_api.rst
+   cpp_api/cpp_api.rst
 
