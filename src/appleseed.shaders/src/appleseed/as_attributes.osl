@@ -84,6 +84,12 @@ shader as_attributes
         string as_maya_attribute_short_name = "ain",
         string label = "Assembly Instance Name"
     ]],
+    output color out_vertex_color = color(0)
+    [[
+        string as_maya_attribute_name = "vertexColor",
+        string as_maya_attribute_short_name = "vcs",
+        string label = "Object Vertex Color"
+    ]],
     // A float[2], but we can't connect array elements yet.
     output int out_camera_resolution[2] = {0, 0}
     [[
@@ -230,6 +236,7 @@ shader as_attributes
     getattribute("object:assembly_instance_id", out_assembly_instance_id);
     getattribute("object:assembly_name", out_assembly_name);
     getattribute("object:assembly_instance_name", out_assembly_instance_name);
+    getattribute("vertex_color", out_vertex_color);
 
     getattribute("camera:resolution", out_camera_resolution);
     out_camera_resolution_x = out_camera_resolution[0];
