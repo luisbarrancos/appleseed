@@ -59,9 +59,8 @@ namespace
 
     const char* Model = "vignette_post_processing_stage";
 
-    static constexpr float DefaultIntensity = 0.5f;
-
-    static constexpr float DefaultAnisotropy = 0.0f;
+    constexpr float DefaultIntensity = 0.5f;
+    constexpr float DefaultAnisotropy = 0.0f;
 
     class VignettePostProcessingStage
       : public PostProcessingStage
@@ -106,17 +105,12 @@ namespace
 
             const CanvasProperties& props = frame.image().properties();
 
-            // Initialize effect-specific context and settings.
-            const VignetteParams effect_params
-            {
+            // Apply the effect onto each image tile, in parallel.
+            const VignetteApplier effect_applier(
                 static_cast<float>(props.m_canvas_width),
                 static_cast<float>(props.m_canvas_height),
                 m_intensity,
-                m_anisotropy
-            };
-
-            // Apply the effect onto each image tile, in parallel.
-            const VignetteApplier effect_applier(effect_params);
+                m_anisotropy);
 
             effect_applier.apply_on_tiles(frame.image(), thread_count);
         }
@@ -170,6 +164,9 @@ DictionaryArray VignettePostProcessingStageFactory::get_input_metadata() const
                         .insert("value", "1.0")
                         .insert("type", "hard"))
             .insert("use", "optional")
+            .insert("help",
+                    "Strength of the vignetting effect\n"
+                    "(higher values lead to stronger darkening of the image edges)")
             .insert("default", "0.5"));
 
     metadata.push_back(
@@ -186,6 +183,9 @@ DictionaryArray VignettePostProcessingStageFactory::get_input_metadata() const
                         .insert("value", "1.0")
                         .insert("type", "hard"))
             .insert("use", "optional")
+            .insert("help",
+                    "Vignette's degree of deviation from a circle\n"
+                    "(0.0 = perfectly rounded, 1.0 = mimics the image aspect ratio)")
             .insert("default", "0.0"));
 
     return metadata;
