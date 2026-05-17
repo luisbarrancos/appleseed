@@ -29,8 +29,11 @@
 
 // appleseed.studio headers.
 #include "commandlinehandler.h"
-#include "mainwindow/mainwindow.h"
+// NOTE: pythoninterpreter.h needs to be included before QT (in maindindow.h),
+// because QT's `#define`d slots interfere with Python's slots. (see https://github.com/pybind/pybind11/issues/2305)
+// NOTE: The same problem appears in appleseed.studio/mainwindow/mainwindow.cpp and appleseed.studio/python/module.cpp.
 #include "python/pythoninterpreter.h"
+#include "mainwindow/mainwindow.h"
 
 // appleseed.qtcommon headers.
 #include "utility/miscellaneous.h"
@@ -159,7 +162,15 @@ namespace
                     "will use Python installation expected to exist in %s.",
                     python_home);
 
+#if PY_MAJOR_VERSION == 2
                 Py_SetPythonHome(python_home);
+#endif
+#if PY_MAJOR_VERSION == 3
+                static wchar_t wc_python_home[FOUNDATION_MAX_PATH_LENGTH + 1];
+                mbstowcs(wc_python_home, python_home, FOUNDATION_MAX_PATH_LENGTH + 1 );
+
+                Py_SetPythonHome(wc_python_home);
+#endif
             }
             else
             {

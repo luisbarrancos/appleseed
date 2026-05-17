@@ -36,6 +36,12 @@ cmake_minimum_required (VERSION 3.9 FATAL_ERROR)
 
 cmake_policy (SET CMP0008 NEW)      # libraries linked by full-path must have a valid library file name
 
+# TODO: so could the Find<...>.cmake files be changed accordingly?
+cmake_policy (SET CMP0074 NEW)      # the find_package(<PackageName>) command now searches prefixes specified by the
+                                    # <PackageName>_ROOT CMake variable and the <PackageName>_ROOT environment variable
+
+cmake_policy (SET CMP0120 OLD)      # inclusion of the deprecated WriteCompilerDetectionHeader module
+
 if (POLICY CMP0026)
     cmake_policy (SET CMP0026 OLD)  # disallow use of the LOCATION target property (CMake 3.0)
 endif ()
@@ -100,7 +106,7 @@ endif ()
 # Language and compiler features.
 #--------------------------------------------------------------------------------------------------
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
@@ -144,20 +150,24 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     option (USE_FIND_PACKAGE_FOR_EXR        "Use find_package() for OpenEXR library"                    OFF)
     option (USE_FIND_PACKAGE_FOR_LZ4        "Use find_package() for LZ4 library"                        OFF)
     option (USE_FIND_PACKAGE_FOR_OCIO       "Use find_package() for OpenColorIO library"                OFF)
+    option (USE_FIND_PACKAGE_FOR_OCV        "Use find_package() for OpenCV library"                     OFF) # TODO: not yet implemented (only implemented for linux)
     option (USE_FIND_PACKAGE_FOR_OIIO       "Use find_package() for OpenImageIO library"                OFF)
     option (USE_FIND_PACKAGE_FOR_OSL        "Use find_package() for OpenShadingLanguage library"        OFF)
     option (USE_FIND_PACKAGE_FOR_XERCES     "Use find_package() for Xerces library"                     OFF)
     option (USE_FIND_PACKAGE_FOR_ZLIB       "Use find_package() for zlib library"                       OFF)
+    option (USE_FIND_PACKAGE_FOR_TIFF       "Use find_package() for tiff"                               OFF)
 else ()
     set (USE_FIND_PACKAGE_FOR_EMBREE        ON)
     set (USE_FIND_PACKAGE_FOR_EXR           ON)
     set (USE_FIND_PACKAGE_FOR_LZ4           ON)
     set (USE_FIND_PACKAGE_FOR_OCIO          ON)
+    set (USE_FIND_PACKAGE_FOR_OCV           ON)
     set (USE_FIND_PACKAGE_FOR_OIIO          ON)
     set (USE_FIND_PACKAGE_FOR_OSL           ON)
     set (USE_FIND_PACKAGE_FOR_PNG           ON)
     set (USE_FIND_PACKAGE_FOR_XERCES        ON)
     set (USE_FIND_PACKAGE_FOR_ZLIB          ON)
+    set (USE_FIND_PACKAGE_FOR_TIFF          ON)
 endif ()
 
 option (USE_STATIC_BOOST                    "Use static Boost libraries"                                ON)
@@ -235,17 +245,19 @@ configure_file (
 # Boost libraries.
 #--------------------------------------------------------------------------------------------------
 
+# bcd imports boost in a deprecated way, hence the variable below is defined to retain the old behavior.
+# "The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated.
+#  Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define
+#  BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.’"
+add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)
+
 set (Boost_MULTITHREADED TRUE)
 
 if (USE_STATIC_BOOST)
     set (Boost_USE_STATIC_LIBS TRUE)
 endif ()
 
-# Boost 1.70 breaks compatibility with the old way of doing things. This restores compatibility.
-# See https://gitlab.kitware.com/cmake/cmake/issues/18865 for details.
-set (Boost_NO_BOOST_CMAKE ON)
-
-find_package (Boost 1.61 REQUIRED COMPONENTS atomic chrono date_time filesystem regex system thread wave)
+find_package (Boost 1.86.00 REQUIRED COMPONENTS atomic chrono date_time filesystem regex system thread wave)
 
 add_definitions (-DBOOST_FILESYSTEM_VERSION=3 -DBOOST_FILESYSTEM_NO_DEPRECATED)
 
@@ -262,6 +274,7 @@ link_directories (${Boost_LIBRARY_DIRS})
 #--------------------------------------------------------------------------------------------------
 # Find packages.
 #--------------------------------------------------------------------------------------------------
+include(FindPackageHandleStandardArgs)
 
 if (WITH_EMBREE)
     set (APPLESEED_WITH_EMBREE ON)
@@ -270,7 +283,8 @@ if (WITH_EMBREE)
         add_definitions (-DEMBREE_STATIC_LIB)
     endif ()
     if (USE_FIND_PACKAGE_FOR_EMBREE)
-        find_package (Embree REQUIRED)
+        find_package (Embree REQUIRED CONFIG)
+        find_package_handle_standard_args (Embree CONFIG_MODE)
     endif ()
 endif ()
 
@@ -283,37 +297,41 @@ if (WITH_GPU)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_EXR)
-    find_package (Imath REQUIRED)
-    find_package (OpenEXR REQUIRED)
+    find_package (Imath REQUIRED CONFIG)
+    find_package_handle_standard_args (Imath CONFIG_MODE)
+    find_package (OpenEXR REQUIRED CONFIG)
+    find_package_handle_standard_args (OpenEXR CONFIG_MODE)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_LZ4)
-    find_package (LZ4 REQUIRED)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(lz4 REQUIRED IMPORTED_TARGET liblz4)
 endif ()
 
-if (WITH_STUDIO)
-    add_definitions (-DAPPLESEED_WITH_OCIO)
+add_definitions (-DAPPLESEED_WITH_OCIO)
 
-    if (USE_STATIC_OCIO)
-        add_definitions (-DOCIO_STATIC_BUILD)
-    endif ()
-    if (USE_FIND_PACKAGE_FOR_OCIO)
-        find_package (OpenColorIO REQUIRED)
-    endif ()
+if (USE_STATIC_OCIO)
+    add_definitions (-DOCIO_STATIC_BUILD)
+endif ()
+if (USE_FIND_PACKAGE_FOR_OCIO)
+    find_package (OpenColorIO REQUIRED CONFIG)
+    #find_package_handle_standard_args(OpenColorIO CONFIG_MODE) # OpenColorIOConfig.cmake does this itself.
 endif ()
 
 if (USE_STATIC_OIIO)
     add_definitions (-DOIIO_STATIC_BUILD)
 endif ()
 if (USE_FIND_PACKAGE_FOR_OIIO)
-    find_package (OpenImageIO REQUIRED)
+    find_package (OpenImageIO REQUIRED CONFIG)
+    find_package_handle_standard_args(OpenImageIO CONFIG_MODE)
 endif ()
 
 if (USE_STATIC_OSL)
     add_definitions (-DOSL_STATIC_BUILD)
 endif ()
 if (USE_FIND_PACKAGE_FOR_OSL)
-    find_package (OSL REQUIRED)
+    find_package (OSL REQUIRED CONFIG)
+    find_package_handle_standard_args(OSL CONFIG_MODE)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_PNG)
@@ -322,12 +340,26 @@ endif ()
 
 if (USE_FIND_PACKAGE_FOR_XERCES)
     add_definitions (-DAPPLESEED_WITH_EXTERNAL_XERCES)
-    find_package (Xerces REQUIRED)
+    find_package (Xerces REQUIRED NAMES XercesC CONFIG)
+    find_package_handle_standard_args(Xerces CONFIG_MODE)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_ZLIB)
     find_package (ZLIB REQUIRED)
 endif ()
+
+if (USE_FIND_PACKAGE_FOR_TIFF)
+    find_package (TIFF REQUIRED)
+endif ()
+
+if (WITH_STATMC)
+    if (USE_FIND_PACKAGE_FOR_OCV)
+        find_package(OpenCV CONFIG REQUIRED)
+        find_package_handle_standard_args(OpenCV CONFIG_MODE)
+        MESSAGE(STATUS "OpenCV Include dirs ${OpenCV_INCLUDE_DIRS}")
+        MESSAGE(STATUS "OpencV LINK LIBRARIES ${OpenCV_LIBS}")
+    endif()
+endif()
 
 
 #--------------------------------------------------------------------------------------------------
@@ -342,6 +374,15 @@ include_directories (
     src/appleseed
 )
 
+# Happly include
+include_directories (
+    ${happly_ROOT}
+)
+
+if (WITH_STATMC)
+    include_directories ( src/thirdparty/statmc )
+endif ()
+
 if (WITH_EMBREE)
     if (USE_FIND_PACKAGE_FOR_EMBREE)
         include_directories (${EMBREE_INCLUDE_DIRS})
@@ -351,9 +392,13 @@ if (WITH_EMBREE)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_EXR)
+    get_target_property(IMATH_INCLUDE_DIRS   Imath::Imath     INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(OPENEXR_INCLUDE_DIRS OpenEXR::OpenEXR INTERFACE_INCLUDE_DIRECTORIES)
+
+    # this is required for third-party code, where headers are imported differently (without 'Imath/' or 'OpenEXR/')
     include_directories (
         ${IMATH_INCLUDE_DIRS}
-        ${IMATH_INCLUDE_DIRS}/OpenEXR/
+        ${IMATH_INCLUDE_DIRS}/Imath/
         ${OPENEXR_INCLUDE_DIRS}
         ${OPENEXR_INCLUDE_DIRS}/OpenEXR/
     )
@@ -373,25 +418,42 @@ else ()
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_OCIO)
+    get_target_property (OPENCOLORIO_INCLUDE_DIRS OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)
+
     include_directories (${OPENCOLORIO_INCLUDE_DIRS})
 else ()
     include_directories (${APPLESEED_DEPS_STAGE_DIR}/ocio-debug/include)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_OIIO)
+    set(OPENIMAGEIO_INCLUDE_DIRS ${OpenImageIO_INCLUDES})
+    set(OPENIMAGEIO_LIBRARIES    ${OpenImageIO_LIB_DIR})
+    # TODO: use these vars (OpenImageIO_INCLUDES, OpenImageIO_LIB_DIR) created by OpenImageIOConfig.cmake itself.
+
     include_directories (${OPENIMAGEIO_INCLUDE_DIRS})
+    link_directories (${OPENIMAGEIO_LIBRARIES})
 else ()
     include_directories (${APPLESEED_DEPS_STAGE_DIR}/oiio-debug/include)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_OSL)
-    include_directories (${OSL_INCLUDE_DIRS})
+    set(OSL_LIBRARIES ${OSL_LIB_DIR})
+    # TODO: use OSL_LIB_DIR created by OSLConfig.cmake itself.
+    find_program(OSL_COMPILER   oslc    HINTS ${OSL_LIB_DIR}/../bin ${OSL_INCLUDE_DIR}/../bin)
+    find_program(OSL_QUERY_INFO oslinfo HINTS ${OSL_LIB_DIR}/../bin ${OSL_INCLUDE_DIR}/../bin)
+    find_program(OSL_MAKETX     maketx  HINTS ${OpenImageIO_LIB_DIR}/../bin ${OpenImageIO_INCLUDE_DIR}/../bin)
+    # TODO: correct: MakeTX is actually part of OpenImageIO.
+
+    include_directories (${OSL_INCLUDE_DIR})
+    link_directories (${OSL_LIBRARIES})
 else ()
     include_directories (${APPLESEED_DEPS_STAGE_DIR}/osl-debug/include)
 endif ()
 
 if (USE_FIND_PACKAGE_FOR_XERCES)
-    include_directories (${XERCES_INCLUDE_DIRS})
+    get_target_property (XERCES_LIBRARIES XercesC::XercesC INTERFACE_LINK_LIBRARIES) 
+
+    include_directories (${XercesC_INCLUDE_DIRS})
 else ()
     include_directories (${APPLESEED_DEPS_STAGE_DIR}/xerces-c-debug/include)
 endif ()
@@ -641,6 +703,10 @@ add_subdirectory (src/thirdparty/bcd)
 add_subdirectory (src/thirdparty/glad)
 add_subdirectory (src/thirdparty/murmurhash3)
 
+if (WITH_STATMC)
+    add_subdirectory (src/thirdparty/statmc)
+endif ()
+
 add_subdirectory (src/appleseed)
 add_subdirectory (src/appleseed.shaders)
 
@@ -675,13 +741,18 @@ if (WITH_PYTHON2_BINDINGS)
     endif ()
 endif ()
 
+if (WITH_PYTHON3_BINDINGS)
+    find_package (PythonLibs REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS})
+endif ()
+
 if (WITH_PYTHON2_BINDINGS OR WITH_PYTHON3_BINDINGS)
     add_subdirectory (src/appleseed.python)
 endif ()
 
 if (WITH_STUDIO)
-    if (NOT WITH_PYTHON2_BINDINGS)
-        message (FATAL_ERROR "Option WITH_PYTHON2_BINDINGS should be \"ON\" to build appleseed.studio.")
+    if (NOT WITH_PYTHON2_BINDINGS AND NOT WITH_PYTHON3_BINDINGS)
+        message (FATAL_ERROR "Option WITH_PYTHON2_BINDINGS or WITH_PYTHON3_BINDINGS should be \"ON\" to build appleseed.studio.")
     endif ()
     add_subdirectory (src/appleseed.studio)
 endif ()
@@ -804,3 +875,4 @@ if (INSTALL_API_EXAMPLES)
         DESTINATION .
     )
 endif ()
+

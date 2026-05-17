@@ -1,4 +1,13 @@
 build/
+collected-deps/
+dependencies/
 sandbox/shaders/
 *.pyc
 __pycache__
+.vs/
+.vscode/
+dependencies/
+collected-deps/
+scratch_data/
+dependencies/
+*.txt

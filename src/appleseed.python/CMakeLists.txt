@@ -34,10 +34,10 @@
 
 set (BOOST_NEEDED_LIBS)
 
-# Don't use Boost_VERSION directly as it changed format with Boost 1.70.
+# TODO: does '106700' still make sense here?
 
 if (WITH_PYTHON2_BINDINGS)
-    if ((Boost_MAJOR_VERSION GREATER 1) OR (Boost_MINOR_VERSION GREATER_EQUAL 67))
+    if (Boost_VERSION GREATER_EQUAL 106700)
         set (BOOST_NEEDED_LIBS ${BOOST_NEEDED_LIBS} python27)
     else ()
         set (BOOST_NEEDED_LIBS ${BOOST_NEEDED_LIBS} python)
@@ -45,17 +45,19 @@ if (WITH_PYTHON2_BINDINGS)
 endif ()
 
 if (WITH_PYTHON3_BINDINGS)
+    set(Python3_FIND_STRATEGY LOCATION)
+
     find_package (Python3 REQUIRED)
     find_package (OpenGL REQUIRED)
 
-    if ((Boost_MAJOR_VERSION GREATER 1) OR (Boost_MINOR_VERSION GREATER_EQUAL 67))
-        set (BOOST_NEEDED_LIBS ${BOOST_NEEDED_LIBS} python37)
+    if (Boost_VERSION GREATER_EQUAL 106700)
+        set (BOOST_NEEDED_LIBS ${BOOST_NEEDED_LIBS} python)
     else ()
         set (BOOST_NEEDED_LIBS ${BOOST_NEEDED_LIBS} python3)
     endif ()
 endif ()
 
-find_package (Boost 1.61 REQUIRED COMPONENTS ${BOOST_NEEDED_LIBS})
+find_package (Boost 1.86.00 REQUIRED COMPONENTS ${BOOST_NEEDED_LIBS})
 
 
 #--------------------------------------------------------------------------------------------------
@@ -165,11 +167,16 @@ if (WITH_PYTHON2_BINDINGS)
 endif ()
 
 if (WITH_PYTHON3_BINDINGS)
-    add_library (appleseed.python3 MODULE
+    add_library (appleseed.py3.obj OBJECT
         ${appleseed.python_sources}
         ${blender_python_sources}
     )
 
+    add_library (appleseed.python3 MODULE
+        $<TARGET_OBJECTS:appleseed.py3.obj>
+    )
+
+    set_target_properties (appleseed.py3.obj PROPERTIES FOLDER "Python Bindings")
     set_target_properties (appleseed.python3 PROPERTIES FOLDER "Python Bindings")
 
     set_target_properties (appleseed.python3 PROPERTIES
